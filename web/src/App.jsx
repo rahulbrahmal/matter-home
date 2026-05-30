@@ -52,7 +52,7 @@ export default function App() {
   let gi = 0;
 
   return (
-   <Show when={state.status !== 'needauth'} fallback={<div class="shell"><div class="ambient" /><Login /></div>}>
+   <Show when={state.status !== 'needauth'} fallback={<><div class="ambient" /><Login /></>}>
     <div class="shell">
       <div class="ambient" />
       <aside class="sidebar">
