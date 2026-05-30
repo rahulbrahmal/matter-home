@@ -51,8 +51,8 @@ export async function login(base, token) {
 }
 export function logout() { localStorage.removeItem('gw_token'); auth.token = ''; if (es) es.close(); setState('status', 'needauth'); }
 
-// ---- SSE connection with auto-reconnect ----
-let es;
+// ---- SSE connection (auto-reconnect; polling fallback for buffering proxies) ----
+let es, pollTimer, sseTimer;
 export async function connect() {
   try {
     const r = await fetch(U('/api/health'), { headers: H() });
@@ -63,24 +63,33 @@ export async function connect() {
     setState('status', 'reconnecting'); setTimeout(connect, 4000); return;
   }
   if (es) es.close();
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  let gotSnap = false;
   es = new EventSource(U('/api/stream') + (auth.token ? '?token=' + encodeURIComponent(auth.token) : ''));
-  es.addEventListener('snapshot', (e) => {
-    const s = JSON.parse(e.data);
-    setState('home', reconcile(s.home));
-    setState('config', reconcile(s.config));
-    setState('controller', s.controller);
-    setState('status', s.connected ? 'live' : 'reconnecting');
-    // reconcile keeps unchanged device identities stable -> no full re-render / re-animation
-    setState('byId', reconcile(Object.fromEntries(s.devices.map((d) => [d.id, d])), { merge: true }));
-  });
+  es.addEventListener('snapshot', (e) => { gotSnap = true; clearTimeout(sseTimer); applySnapshot(JSON.parse(e.data)); });
   es.addEventListener('delta', (e) => {
     const d = JSON.parse(e.data);
     if (state.byId[d.id]) setState('byId', d.id, reconcile(d, { merge: true })); else setState('byId', d.id, d);
     clearOpt(d.id);
   });
   es.addEventListener('controller', (e) => { const c = JSON.parse(e.data); setState('status', c.connected ? 'live' : 'reconnecting'); if (c.controller) setState('controller', c.controller); });
-  es.onopen = () => setState('status', (s) => (s === 'loading' ? 'loading' : 'live'));
-  es.onerror = () => setState('status', 'reconnecting');
+  es.onerror = () => { if (!gotSnap && !pollTimer) startPolling(); else setState('status', 'reconnecting'); };
+  // proxies (e.g. Cloudflare quick tunnels) may buffer SSE; if no snapshot arrives, fall back to polling
+  sseTimer = setTimeout(() => { if (!gotSnap) { try { es.close(); } catch {} startPolling(); } }, 3500);
+}
+
+function applySnapshot(s) {
+  setState('home', reconcile(s.home));
+  setState('config', reconcile(s.config));
+  setState('controller', s.controller);
+  setState('status', s.connected === false ? 'reconnecting' : 'live');
+  setState('byId', reconcile(Object.fromEntries(s.devices.map((d) => [d.id, d])), { merge: true }));
+}
+async function startPolling() {
+  if (pollTimer) return;
+  const tick = async () => { try { const r = await fetch(U('/api/snapshot'), { headers: H() }); if (r.ok) applySnapshot(await r.json()); } catch {} };
+  await tick();
+  pollTimer = setInterval(tick, 2500);
 }
 
 // ---- commands: optimistic + pending + timeout/error ----
