@@ -1,0 +1,143 @@
+/* ============ Controls: chips/pills, tiles, climate tiles/cards, toggle, power, room cards ============ */
+
+/* ---- chips & pills: 44px tap targets ---- */
+.chip, .pill { display: inline-flex; align-items: center; gap: 7px; height: 44px; padding: 0 16px; border-radius: var(--r-pill);
+  background: var(--surface); border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 600;
+  cursor: pointer; flex: 0 0 auto; white-space: nowrap;
+  transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease),
+              transform var(--dur-1) ease-out; }
+.chip:active, .pill:active { transform: scale(.97); }
+.ess-chip.on { background: var(--accent-soft); border-color: rgba(255,122,66,.4); color: var(--accent-2); } /* amber when on */
+.scene-pill.run { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
+.off-pill { background: var(--surface-2); border-color: var(--line-2); }
+
+/* ---- pending command: shimmer (kept) ---- */
+.ess-chip.pending, .scene-pill.pending, .tile.pending, .ctile.pending, .ccard.pending { position: relative; overflow: hidden; }
+.ess-chip.pending::after, .scene-pill.pending::after, .tile.pending::after, .ctile.pending::after, .ccard.pending::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.14), transparent 65%); animation: shimmer 1.1s infinite; }
+
+/* ---- entry stagger: INITIAL LOAD ONLY (.tile-enter + --i set once by introIndex(); never on route/filter/data changes) ---- */
+.tile-enter { animation: enter var(--dur-3) var(--ease) both; animation-delay: calc(min(var(--i, 0), 12) * 18ms); }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } }
+
+/* ---- circuit tile 174x64 (fixed height — no layout shift) ---- */
+.tile { position: relative; overflow: hidden; display: flex; align-items: center; gap: 11px; height: 64px; padding: 0 12px; text-align: left;
+  border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit;
+  transition: border-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease),
+              transform var(--dur-1) ease-out; }
+/* toggle crossfade: gradients can't interpolate, so the accent fill lives on ::before and fades */
+.tile::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(158deg, var(--accent) -8%, var(--accent-2) 116%); transition: opacity var(--dur-2) var(--ease); }
+.tile > * { position: relative; z-index: 1; }
+.tile:active { transform: scale(.97); }
+.tile.on { border-color: transparent; color: var(--accent-ink); box-shadow: 0 10px 26px -10px var(--accent-glow); }
+.tile.on::before { opacity: 1; }
+.tile.unreachable { opacity: .42; }
+.tile-ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3);
+  color: var(--muted); flex: 0 0 auto; transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease); }
+.tile.on .tile-ico, .ctile.on .tile-ico { background: rgba(26,13,5,.16); color: inherit; }
+.tile-ico.pop { animation: ico-pop 350ms var(--spring); }  /* icon spring 1 → 1.15 → 1 on toggle */
+@keyframes ico-pop { 0% { transform: scale(1); } 45% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.tile-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tile-name { font-size: 13px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.on .tile-sub { color: rgba(26,13,5,.62); }
+
+/* full-width variants */
+.dimmer-tile, .windows-tile, .ccard { grid-column: 1 / -1; width: 100%; }
+.dimmer-tile { padding: 0; margin-bottom: 12px; }
+.dim-main { flex: 1 1 50%; min-width: 0; display: flex; align-items: center; gap: 11px; height: 100%; padding: 0 12px;
+  background: none; border: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.dim-slider { flex: 1 1 50%; -webkit-appearance: none; appearance: none; height: 44px; background: transparent;
+  margin: 0 14px 0 0; min-width: 0; touch-action: pan-y; }  /* 44px hit-height; vertical pans still scroll */
+.dim-slider::-webkit-slider-runnable-track { height: 10px; border-radius: 6px; background: var(--surface-3); }
+.tile.on .dim-slider::-webkit-slider-runnable-track { background: rgba(26,13,5,.2); }
+.dim-slider::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -9px; width: 28px; height: 28px; border-radius: 50%;
+  background: #fff; box-shadow: 0 3px 9px rgba(0,0,0,.35); cursor: pointer; }
+.dim-slider::-moz-range-track { height: 10px; border-radius: 6px; background: var(--surface-3); }
+.dim-slider::-moz-range-thumb { width: 28px; height: 28px; border: none; border-radius: 50%; background: #fff;
+  box-shadow: 0 3px 9px rgba(0,0,0,.35); cursor: pointer; }
+.windows-tile { margin-bottom: 12px; }
+.pos-bar { position: absolute; left: 0; bottom: 0; height: 3px; z-index: 1; background: var(--accent);
+  transition: width .4s linear; }                            /* cover position, eased per poll (§3) */
+.tile.on .pos-bar { background: var(--accent-ink); }
+
+/* ---- climate rail tile 240x96 ---- */
+.ctile { position: relative; overflow: hidden; flex: 0 0 240px; height: 96px; scroll-snap-align: start;
+  border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface); padding: 12px 14px;
+  display: flex; flex-direction: column; justify-content: space-between; cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease), transform var(--dur-1) ease-out; }
+.ctile::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(165deg, var(--surface-2), var(--surface)); transition: opacity var(--dur-2) var(--ease); }
+.ctile > * { position: relative; z-index: 1; }
+.ctile:active { transform: scale(.97); }
+.ctile.on { border-color: rgba(255,122,66,.4); } .ctile.on::before { opacity: 1; }
+.ctile.warn { border-color: rgba(255,122,66,.55); }
+.ctile-top { display: flex; align-items: center; gap: 9px; }
+.ctile-name { flex: 1; min-width: 0; font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctile-more { position: relative; width: 36px; height: 36px; border-radius: 11px; border: none; background: var(--surface-3);
+  color: var(--muted); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
+.ctile-more::before { content: ''; position: absolute; inset: -4px; }  /* 36px visual, 44px hit */
+.ctile-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.ctile-temp { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ctile-temp small { font-size: 12px; font-weight: 600; }
+.ctile-sub { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctile.on .ctile-sub { color: var(--accent-2); }
+.badge.warn { background: var(--accent-soft); border: 1px solid rgba(255,122,66,.45); color: var(--accent-2);
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: var(--r-pill); }
+.breathing { animation: breathe 1.6s ease-in-out infinite; }   /* climate "Powering…" (§3) */
+@keyframes breathe { 50% { opacity: .55; } }
+
+/* ---- room-page climate card 84px ---- */
+.ccard { position: relative; overflow: hidden; display: flex; align-items: center; gap: 11px; height: 84px; padding: 0 12px;
+  border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface); cursor: pointer; margin-bottom: 12px;
+  transition: border-color var(--dur-2) var(--ease); }
+.ccard.on { border-color: rgba(255,122,66,.4); }
+.ccard.warn { border-color: rgba(255,122,66,.55); }
+.ccard-temp { font-size: 26px; font-weight: 800; margin-right: 4px; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.ccard-temp small { font-size: 13px; font-weight: 600; }
+
+/* ---- circular power: 44px (a11y bump from 40) ---- */
+.power { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; flex: 0 0 auto; display: grid; place-items: center;
+  background: var(--surface-3); color: var(--muted);
+  transition: transform var(--dur-2) var(--spring), background var(--dur-2) var(--ease), color var(--dur-2) var(--ease); }
+.power:hover { transform: scale(1.06); }
+.power.on { background: var(--accent); color: var(--accent-ink); }
+
+/* ---- toggle 52x32, sprung thumb, 44px hit via ::before ---- */
+.tgl { position: relative; width: 52px; height: 32px; border-radius: var(--r-pill); border: 1px solid var(--line-2);
+  background: var(--surface-3); cursor: pointer; flex: 0 0 auto; padding: 0; transition: background var(--dur-2) var(--ease); }
+.tgl::before { content: ''; position: absolute; inset: -6px; }
+.tgl.on { background: var(--accent); border-color: transparent; }
+.tgl-thumb { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff;
+  transition: transform 350ms var(--spring); }               /* thumb spring (§3) */
+.tgl.on .tgl-thumb { transform: translateX(20px); }
+.tgl.pending { opacity: .6; }
+
+/* ---- home room card 64px ---- */
+.room-card { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 12px; border-radius: var(--r-card);
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease), transform var(--dur-1) ease-out; }
+.room-card:active { transform: scale(.98); }
+.room-card.lit { border-color: rgba(255,122,66,.3); }
+.room-glyph { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3);
+  color: var(--muted); flex: 0 0 auto; transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease); }
+.room-card.lit .room-glyph { background: var(--accent-soft); color: var(--accent); }
+.room-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.room-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.room-sub { font-size: 12px; color: var(--muted); }
+
+/* ---- section head + mini-master ---- */
+.sec-row { display: flex; align-items: center; gap: 10px; margin: 4px 2px 10px; }
+.sec-title { flex: 1; min-width: 0; margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--muted); }
+.sec-count, .sec-ambient { color: var(--faint); font-size: 12px; }
+.mini-master { position: relative; height: 32px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--line-2);
+  background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.mini-master::before { content: ''; position: absolute; inset: -6px -2px; }  /* 32px visual, 44px hit */
+
+/* ---- generic text input + row ---- */
+.text { background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); border-radius: 13px;
+  padding: 12px 14px; font: inherit; font-size: 15px; }
+.row { display: flex; gap: 10px; align-items: center; }
+.row .text { flex: 1; min-width: 0; }

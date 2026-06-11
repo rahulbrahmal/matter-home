@@ -1,10 +1,16 @@
-import { onMount, createSignal, createMemo, For, Show } from 'solid-js';
-import { state, connect, login, auth, toasts, view, cmd, builtinScenes, runScene } from './store.js';
-import { buildAreas, isAcPower } from './home.js';
-import { LightTile, ClimateCard, CoverTile, DetailSheet, Skeletons, Toasts } from './components.jsx';
+// Shell only (spec §4 step 4): Login gate → header (greeting + avatar → Settings sheet) →
+// route switch (#/ Home, #/room/<id> pager) → SheetHost → Toasts → reconnect banner.
+// All grouping logic lives in model.js; all controls in ui/ + views/.
+import { onMount, createSignal, createMemo, Show, For } from 'solid-js';
+import { state, connect, login, auth, toasts, saveDevice, logout } from './store.js';
+import { rooms, needsSetup } from './model.js';
+import { route, openSheet } from './router.js';
+import Home from './views/Home.jsx';
+import Rooms from './views/Rooms.jsx';
+import { SheetHost } from './ui/Sheet.jsx';
+import { Toasts, Toggle, Icon } from './ui/bits.jsx';
 
 const greet = () => { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 22 ? 'Good evening' : 'Good night'; };
-const lit = (id, ep) => view(id)?.state.on?.find((o) => o.ep === ep)?.on;
 
 function Login() {
   const [pw, setPw] = createSignal('');
@@ -24,98 +30,55 @@ function Login() {
   );
 }
 
+/* Settings sheet: Power & circuits (hidden relays/spares/circuit-masters) + Needs setup (room:null) */
+function SettingsBody() {
+  const hidden = createMemo(() => rooms().flatMap((r) => r.hidden.map((u) => ({ u, room: r.name }))));
+  return (<>
+    <div class="sheet-head"><span class="c-ico"><Icon name="user" size={24} /></span>
+      <div style={{ flex: 1, 'min-width': 0 }}><div class="sheet-title">Settings</div>
+        <div class="c-sub num">{Object.keys(state.byId).length} devices</div></div></div>
+    <div class="sheet-body">
+      <details class="settings"><summary>Power &amp; circuits</summary>
+        <div class="gang-rows" style={{ 'margin-top': '14px' }}>
+          <For each={hidden()}>{({ u, room }) => (
+            <div class="gang-row"><span class="gr-name">{u.name}<span class="c-sub">{room}</span></span>
+              <Show when={u.hidden}><button class="ghost" onClick={() => saveDevice(u.id, { hidden: false })}>Unhide</button></Show>
+              <Toggle checked={u.on()} pending={u.pending()} label={u.name} onChange={() => u.toggle()} /></div>)}</For>
+          <Show when={!hidden().length}><p class="muted">No hidden circuits.</p></Show>
+        </div></details>
+      <Show when={needsSetup().length}>
+        <details class="settings" open><summary>Needs setup</summary>
+          <div class="gang-rows" style={{ 'margin-top': '14px' }}>
+            <For each={needsSetup()}>{(n) => (
+              <div class="gang-row"><span class="gr-name">{n.device.name}<span class="c-sub">{n.device.id}</span></span>
+                <Show when={n.suggest}><button class="ghost" onClick={() => saveDevice(n.device.id, { room: n.suggest })}>Assign to {n.suggest}?</button></Show>
+              </div>)}</For>
+          </div></details>
+      </Show>
+      <button class="ghost" style={{ 'align-self': 'flex-start' }} onClick={logout}>Sign out</button>
+    </div>
+  </>);
+}
+
 export default function App() {
   onMount(connect);
-  const [nav, setNav] = createSignal('all');
-  const [floor, setFloor] = createSignal('All');
-  const [edit, setEdit] = createSignal(false);
-  const [open, setOpen] = createSignal(null);
-
-  const all = createMemo(() => Object.values(state.byId));
-  const visible = createMemo(() => all().filter((d) => edit() || !d.hidden));
-  const areas = createMemo(() => {
-    const order = state.home.areas.map((a) => a.name);
-    let a = buildAreas(visible());
-    if (nav() !== 'all') a = a.filter((x) => x.name === nav());
-    else if (floor() !== 'All') a = a.filter((x) => x.floor === floor());
-    return a.sort((x, y) => (x.name === 'Unassigned' ? 1 : y.name === 'Unassigned' ? -1 : (order.indexOf(x.rooms[0]) + 1 || 99) - (order.indexOf(y.rooms[0]) + 1 || 99)));
-  });
-  const allAreas = createMemo(() => buildAreas(visible()));
-
-  const lightsOn = createMemo(() => all().filter((d) => ['light', 'switch', 'outlet'].includes(d.type) && !isAcPower(d))
-    .reduce((n, d) => n + (view(d.id)?.state.on?.filter((o) => o.on).length || 0), 0));
-  const climates = createMemo(() => all().map((d) => view(d.id)?.state.climate?.localTemp).filter((t) => t != null));
-  const avgTemp = createMemo(() => climates().length ? (climates().reduce((a, b) => a + b, 0) / climates().length).toFixed(1) : null);
-  const floors = createMemo(() => ['All', ...state.home.floors.map((f) => f.name)]);
-  const areaOnCount = (a) => a.lights.filter((u) => lit(u.id, u.ep)).length;
-  const turnOff = (a) => a.lights.forEach((u) => lit(u.id, u.ep) && cmd.toggle(u.id, u.ep, false));
-  let gi = 0;
-
   return (
-   <Show when={state.status !== 'needauth'} fallback={<><div class="ambient" /><Login /></>}>
-    <div class="shell">
+    <Show when={state.status !== 'needauth'} fallback={<><div class="ambient" /><Login /></>}>
       <div class="ambient" />
-      <aside class="sidebar">
-        <div class="side-brand"><span class="side-logo">🏠</span><b>Home</b></div>
-        <button class="side-item" classList={{ active: nav() === 'all' }} onClick={() => setNav('all')}><span class="ico">◳</span> Dashboard</button>
-        <div class="side-sec">Areas</div>
-        <For each={allAreas()}>{(a) => (
-          <button class="side-item" classList={{ active: nav() === a.name }} onClick={() => setNav(a.name)}><span class="ico">⬚</span> {a.name} <span class="count">{a.count}</span></button>
-        )}</For>
-      </aside>
-
-      <main class="main">
-        <Show when={state.status === 'reconnecting'}><div class="banner">Reconnecting…</div></Show>
-        <header class="greeting">
-          <div><p class="greet-line">{greet()}</p><h1>{nav() === 'all' ? 'Welcome home' : nav()}</h1></div>
-          <div class="head-actions"><button class="icon-btn" classList={{ active: edit() }} onClick={() => setEdit(!edit())}>✎</button><span class="avatar">🙂</span></div>
-        </header>
-
-        <div class="summary-strip">
-          <div class="stat live"><span class="si">💡</span><span><span class="big">{lightsOn()}</span> on</span></div>
-          <Show when={avgTemp()}><div class="stat"><span class="si">🌡</span><span><span class="big">{avgTemp()}°</span> avg</span></div></Show>
-          <div class="stat"><span class="si">⌂</span><span><span class="big">{all().length}</span> devices</span></div>
-        </div>
-
-        <div class="rail-head"><h2>Scenes</h2></div>
-        <div class="scenes"><For each={builtinScenes()}>{(s) => (
-          <button class="scene" onClick={() => runScene(s.actions())}><span class="scene-ico">{s.icon}</span>
-            <div><div class="scene-name">{s.name}</div><div class="scene-sub">{s.sub}</div></div></button>)}</For></div>
-
-        <Show when={nav() === 'all'}>
-          <div class="chips"><For each={floors()}>{(f) => (
-            <button class="chip" classList={{ active: floor() === f }} onClick={() => setFloor(f)}>{f.replace(' Level', '')}</button>)}</For></div>
-        </Show>
-
-        <Show when={state.status !== 'loading' || all().length} fallback={<Skeletons />}>
-          <For each={areas()}>{(a) => (
-            <section class="sec">
-              <div class="sec-head"><h2>{a.name}</h2>
-                <div class="meta">
-                  <Show when={areaOnCount(a)}><span class="on-count">{areaOnCount(a)} on</span><button class="link" onClick={() => turnOff(a)}>Turn off</button></Show>
-                  <span class="muted">{a.count}</span>
-                </div></div>
-              <div class="grid">
-                <For each={a.climate}>{(g) => <ClimateCard group={g} onOpen={setOpen} />}</For>
-                <For each={a.lights}>{(u) => <LightTile unit={u} edit={edit()} i={gi++} onOpen={setOpen} />}</For>
-                <For each={a.covers}>{(d) => <CoverTile id={d.id} onOpen={setOpen} />}</For>
-                <For each={a.sensors}>{(d) => <div class="card"><div class="card-top"><span class="c-ico">📡</span><span class="c-meta"><span class="c-name">{d.name}</span><span class="c-sub">{view(d.id)?.state.temp ?? '–'}° · {view(d.id)?.state.humidity ?? '–'}%</span></span></div></div>}</For>
-              </div>
-            </section>
-          )}</For>
-          <Show when={areas().every((a) => !a.count)}><p class="empty">Nothing here yet.</p></Show>
-        </Show>
-      </main>
-
-      <nav class="bottom-nav">
-        <button classList={{ active: nav() === 'all' }} onClick={() => { setNav('all'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>⌂</button>
-        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>✨</button>
-        <button classList={{ active: edit() }} onClick={() => setEdit(!edit())}>✎</button>
-      </nav>
-
-      <DetailSheet open={open()} onClose={() => setOpen(null)} />
+      <Show when={state.status === 'reconnecting'}><div class="banner">Reconnecting…</div></Show>
+      <Show when={route().name === 'room'} fallback={
+        <main class="main home-view">
+          <header class="greeting">
+            <div><p class="greet-line">{greet()}</p><h1>Welcome home</h1></div>
+            <button class="avatar" aria-label="Settings" onClick={() => openSheet({ body: () => <SettingsBody /> })}><Icon name="user" size={19} /></button>
+          </header>
+          <Home />
+        </main>
+      }>
+        <Rooms />
+      </Show>
+      <SheetHost />
       <Toasts items={toasts()} />
-    </div>
-   </Show>
+    </Show>
   );
 }

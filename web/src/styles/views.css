@@ -1,0 +1,52 @@
+/* ============ Views: Home rails + Rooms pager / chip rail ============ */
+
+/* hidden scrollbars on every horizontal rail */
+.ess-row::-webkit-scrollbar, .clim-rail::-webkit-scrollbar, .scene-rail::-webkit-scrollbar,
+.chip-rail::-webkit-scrollbar, .pager::-webkit-scrollbar { display: none; }
+
+/* Home: essentials → climate rail → status → scenes → room cards */
+.ess-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 14px; scrollbar-width: none; }
+.clim-rail { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 2px 16px; scrollbar-width: none; }
+.status-strip { font-size: 13px; color: var(--muted); font-weight: 600; margin: 0 2px 14px; }
+.scene-rail { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 16px; scrollbar-width: none; }
+.room-cards { display: flex; flex-direction: column; gap: 10px; padding-bottom: 40px; }
+@media (min-width: 1200px) { .room-cards { display: grid; grid-template-columns: 1fr 1fr; } }
+
+/* tile grid: 2-up at 390 → wider up (spec §2.1); rows stay 64px (align-items start = no stretch) */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; align-items: start; margin-bottom: 18px; }
+@media (min-width: 1200px) { .grid2 { gap: 12px; } }
+
+/* Rooms: full-screen horizontal scroll-snap pager (native momentum — no JS animation, §3) */
+.rooms { position: fixed; inset: 0; display: flex; flex-direction: column; z-index: 10; background: var(--bg); }
+.pager { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x pan-y; }
+.page { flex: 0 0 100%; min-width: 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
+.page-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 2px 14px; }
+.page-head h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.page-foot { display: flex; justify-content: flex-end; padding: 10px 0 30px; }
+
+/* bottom chip rail, docked above the safe area */
+.chip-rail { flex: 0 0 auto; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  padding: 10px max(14px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  border-top: 1px solid var(--line); background: rgba(17,19,25,.92); backdrop-filter: blur(20px); }
+.rail-chip { position: relative; height: 36px; padding: 0 14px; font-size: 13px; }
+.rail-chip::before { content: ''; position: absolute; inset: -4px; }   /* 36px visual, 44px hit */
+.rail-chip.active { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
+.rail-chip.lit:not(.active)::after { content: ''; position: absolute; top: 5px; right: 7px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent); }
+
+/* ≥768: centered 640px pages; the chip rail becomes a left rail listing rooms (spec §2.1) */
+@media (min-width: 768px) {
+  .rooms { flex-direction: row; }
+  .page { padding: 24px max(24px, calc((100% - 640px) / 2)) 40px; }
+  .chip-rail { order: -1; flex-direction: column; align-items: stretch; width: 240px; overflow-y: auto; overflow-x: hidden;
+    border-top: none; border-right: 1px solid var(--line); padding: 26px 14px; gap: 6px;
+    background: linear-gradient(180deg, var(--bg-soft), var(--bg)); }
+  .rail-chip { height: 44px; justify-content: flex-start; border-radius: 13px; font-size: 14px; }
+  .rail-chip.lit:not(.active)::after { top: 50%; transform: translateY(-50%); right: 12px; }
+}
+@media (min-width: 1200px) {
+  .chip-rail { width: 256px; }
+  .page { padding: 32px max(32px, calc((100% - 720px) / 2)) 48px; }
+}

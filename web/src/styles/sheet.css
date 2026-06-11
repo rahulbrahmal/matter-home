@@ -1,0 +1,88 @@
+/* ============ Detail sheet layer: scrim, sheet (rise/fall + drag), heads, blocks, dial, motor rows ============ */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(9px); z-index: 50;
+  display: flex; align-items: flex-end; justify-content: center; animation: fade var(--dur-2) var(--ease); }
+@keyframes fade { from { opacity: 0; } }
+.scrim.closing { animation: fadeout var(--dur-2) var(--ease) forwards; }
+@keyframes fadeout { to { opacity: 0; } }
+
+.sheet { position: relative; width: 100%; max-width: 520px; background: var(--surface); border: 1px solid var(--line-2);
+  border-bottom: none; border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 10px 22px calc(32px + env(safe-area-inset-bottom));
+  box-shadow: 0 -24px 70px rgba(0,0,0,.55); max-height: 92dvh; overflow-y: auto;
+  overscroll-behavior: contain; touch-action: pan-y;          /* sheet drags vertically; sliders own their x */
+  animation: sheet-rise var(--dur-3) var(--ease-sheet);       /* rise (§3) */
+  transition: transform 280ms var(--spring); }                /* drag-release spring-back */
+@keyframes sheet-rise { from { transform: translateY(100%); } }
+.sheet.tall { height: 92dvh; }
+.sheet.dragging { transition: none; }                         /* 1:1 finger follow */
+.sheet.closing { transition: transform var(--dur-3) var(--ease-sheet); transform: translateY(105%); } /* real exit */
+@media (min-width: 600px) {
+  .scrim { align-items: center; }
+  .sheet { border-radius: var(--r-lg); border-bottom: 1px solid var(--line-2); padding-bottom: 32px; }
+}
+.grip { width: 42px; height: 5px; border-radius: 3px; background: var(--line-2); margin: 3px auto 18px; touch-action: none; }
+.sheet-close { position: absolute; top: 14px; right: 16px; width: 44px; height: 44px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); display: grid; place-items: center;
+  cursor: pointer; z-index: 2; }
+
+.sheet-head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; padding-right: 48px; }
+.sheet-title { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+.sheet-body { display: flex; flex-direction: column; gap: 22px; }
+.c-ico { width: 52px; height: 52px; border-radius: 13px; display: grid; place-items: center; background: var(--surface-3); flex: 0 0 auto; }
+.c-sub { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+
+.block label { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .6px; margin-bottom: 11px; }
+.block input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent;
+  touch-action: pan-y; }                                       /* 44px hit-height */
+.block input[type=range]::-webkit-slider-runnable-track { height: 10px; border-radius: 6px; background: var(--surface-3); }
+.block input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -8px; width: 26px; height: 26px;
+  border-radius: 50%; background: var(--accent); box-shadow: 0 4px 12px -2px var(--accent-glow); cursor: pointer; }
+.block input[type=range]::-moz-range-track { height: 10px; border-radius: 6px; background: var(--surface-3); }
+.block input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border: none; border-radius: 50%;
+  background: var(--accent); cursor: pointer; }
+
+.gang-rows { display: flex; flex-direction: column; gap: 9px; }
+.gang-row { display: flex; align-items: center; gap: 12px; background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 15px; padding: 12px 14px; }
+.gang-row .gr-name { flex: 1; min-width: 0; background: none; border: none; color: var(--ink); font: inherit;
+  font-weight: 600; font-size: 15px; }
+.gang-row .c-sub { font-size: 11px; }
+
+.seg { display: flex; gap: 5px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 15px; padding: 5px; }
+.seg button { flex: 1; min-height: 44px; background: none; border: none; color: var(--muted); border-radius: 11px;
+  padding: 11px 6px; font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease); }
+.seg button.sel { background: var(--accent); color: var(--accent-ink); box-shadow: 0 6px 16px -4px var(--accent-glow); }
+
+.ghost { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2);
+  border: 1px solid var(--line); color: var(--ink); border-radius: 13px; padding: 0 16px; font-size: 13.5px;
+  font-weight: 600; cursor: pointer; }
+.ghost.active { color: var(--accent); border-color: var(--accent-soft); }
+
+.power-warn { background: var(--accent-soft); border: 1px solid rgba(255,122,66,.3); color: var(--accent-2);
+  padding: 12px 14px; border-radius: 14px; font-size: 13px; font-weight: 600; line-height: 1.4; }
+
+/* circular climate dial (ported, not rewritten) */
+.dial-wrap { display: grid; place-items: center; padding: 8px 0 4px; }
+.dial { position: relative; width: 230px; height: 230px; }
+.dial svg { transform: rotate(135deg); }
+.dial .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.dial .cur-mode { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+.dial .set-t { font-size: 56px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.dial .now-t { font-size: 13px; color: var(--muted); }
+.dial-steps { display: flex; align-items: center; justify-content: center; gap: 26px; margin-top: 6px; }
+.dial-steps button { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line-2);
+  background: var(--surface-2); color: var(--ink); font-size: 26px; cursor: pointer; }
+
+/* settings / per-motor disclosures */
+.settings summary, .motor-rows summary { cursor: pointer; color: var(--muted); font-weight: 700; font-size: 13px; padding: 12px 0; }
+.motor-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.motor-row .gr-name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
+.cover-ctl { display: flex; gap: 6px; }
+.cover-ctl button { flex: 1; min-width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-2);
+  background: var(--surface-2); color: inherit; cursor: pointer; font-size: 13px; display: grid; place-items: center; }
+.motor-row .cover-ctl button { flex: 0 0 44px; }
+.readouts { gap: 18px; color: var(--muted); font-weight: 600; }
+.readouts .num { display: inline-flex; align-items: center; gap: 6px; }

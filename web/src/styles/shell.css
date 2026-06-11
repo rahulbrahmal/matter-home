@@ -1,0 +1,53 @@
+/* ============ App shell: main column, header, banner, login, toasts, skeletons ============ */
+.main { min-width: 0;
+  padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           calc(96px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.home-view { max-width: 640px; margin: 0 auto; }
+@media (min-width: 768px)  { .main { padding: 30px 24px 60px; } }
+@media (min-width: 1200px) { .main { padding: 36px 32px 60px; } }
+
+/* header / greeting (22px/800 per spec; read-only top zone) */
+.greeting { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.greet-line { font-size: 14px; color: var(--muted); font-weight: 500; margin: 0 0 3px; }
+.greeting h1 { font-size: 22px; font-weight: 800; letter-spacing: -.03em; margin: 0; }
+@media (min-width: 768px) { .greeting h1 { font-size: 28px; } }
+.avatar { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+  background: linear-gradient(140deg, var(--accent), var(--accent-2)); display: grid; place-items: center;
+  font-weight: 700; color: var(--accent-ink); }
+
+/* reconnect banner */
+.banner { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 45;
+  background: var(--accent-soft); border: 1px solid var(--accent-soft); color: var(--accent-2);
+  padding: 8px 18px; border-radius: var(--r-pill); font-size: 13px; font-weight: 700; }
+
+/* toasts (above the chip rail + safe area) */
+.toasts { position: fixed; bottom: calc(90px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px; z-index: 60; }
+.toast { background: rgba(40,20,15,.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,120,70,.35); color: #ffd0b8;
+  padding: 11px 18px; border-radius: 14px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow);
+  animation: rise var(--dur-2) var(--ease); }
+@media (min-width: 768px) { .toasts { bottom: 24px; } }
+
+/* skeletons (64px = tile/room-card height: no layout shift on load) */
+.skeleton { height: 64px; border-radius: var(--r-card); border: 1px solid var(--line);
+  background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
+  background-size: 200% 100%; animation: sk 1.3s infinite; }
+
+/* ---- login (kept nearly verbatim; the auth contract) ---- */
+.login { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.login-card { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 34px 26px; display: flex; flex-direction: column; gap: 14px; text-align: center; box-shadow: var(--shadow); }
+.login-logo { width: 66px; height: 66px; border-radius: 20px; background: linear-gradient(150deg, var(--accent), var(--accent-2));
+  display: grid; place-items: center; font-size: 32px; margin: 0 auto 2px; box-shadow: 0 12px 30px -8px var(--accent-glow); }
+.login-card h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.login-card .muted { margin: 0 0 4px; font-size: 13.5px; }
+.login-card .text { width: 100%; text-align: left; }
+.login-adv { text-align: left; }
+.login-adv summary { cursor: pointer; color: var(--muted); font-size: 12px; font-weight: 600; list-style: none; padding: 6px 0; }
+.login-adv summary::-webkit-details-marker { display: none; }
+.login-adv summary::before { content: '⚙ '; }
+.login-adv .text { margin-top: 9px; }
+.login-err { color: #ff9d9d; font-size: 13px; }
+.login-btn { background: linear-gradient(150deg, var(--accent), var(--accent-2)); color: var(--accent-ink); border: none;
+  border-radius: 14px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; min-height: 44px; }
+.login-btn:disabled { opacity: .55; }

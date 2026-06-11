@@ -1,0 +1,18 @@
+/* ============ Design tokens — "Warm Dark" palette (verbatim) + spec §3 motion ============ */
+:root {
+  --bg: #0d0e12; --bg-soft: #111319; --surface: #181b22; --surface-2: #1f232c; --surface-3: #262b36;
+  --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.12);
+  --ink: #f5f6f9; --muted: #969db0; --faint: #5d6577;
+  --accent: #ff7a42; --accent-2: #ff9d4d; --accent-ink: #1a0d05;
+  --accent-soft: rgba(255,122,66,.14); --accent-glow: rgba(255,122,66,.45);
+  --cool: #5bb8ff; --good: #54d98b;
+  --r-card: 22px; --r-lg: 28px; --r-pill: 999px;
+  --sp: clamp(14px, 2.2vw, 22px);
+  --font: "Plus Jakarta Sans", -apple-system, system-ui, sans-serif;
+  --shadow: 0 14px 40px -12px rgba(0,0,0,.55);
+  /* motion (spec §3) */
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms;
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --ease-sheet: cubic-bezier(.32,.72,0,1);   /* iOS sheet curve */
+  --spring: cubic-bezier(.34,1.56,.64,1);
+}

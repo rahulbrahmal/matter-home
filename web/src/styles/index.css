@@ -1,0 +1,16 @@
+/* Stylesheet root — import order matters (later files override earlier ones). */
+@import './tokens.css';
+@import './base.css';
+@import './shell.css';
+@import './controls.css';
+@import './views.css';
+@import './sheet.css';
+
+/* Reduced motion (spec §3): near-instant, opacity-only; no staggers, loops or press transforms. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 80ms !important; transition-duration: 80ms !important; }
+  .tile-enter, .breathing, .tile-ico.pop, .skeleton,
+  .tile.pending::after, .ctile.pending::after, .ccard.pending::after,
+  .ess-chip.pending::after, .scene-pill.pending::after { animation: none !important; }
+  .tile:active, .chip:active, .pill:active, .ctile:active, .room-card:active, .power:hover { transform: none; }
+}
