@@ -117,7 +117,10 @@ function serveStatic(req, res) {
     if (err) return readFile(join(WEB_DIST, 'index.html'), (e2, idx) => e2
       ? (res.writeHead(200, { 'content-type': 'text/plain' }), res.end('Gateway up. Build the SPA: cd web && npm run build'))
       : (res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-cache' }), res.end(idx)));
-    res.writeHead(200, { 'content-type': MIME[extname(file)] || 'application/octet-stream', 'cache-control': p.includes('/assets/') ? 'max-age=31536000' : 'no-cache' });
+    // no-store + private: Cloudflare's edge respects these (plain no-cache still gets edge-cached
+    // for default extensions like .js, which would serve a stale sw.js after deploys)
+    res.writeHead(200, { 'content-type': MIME[extname(file)] || 'application/octet-stream',
+      'cache-control': p.includes('/assets/') ? 'max-age=31536000, immutable' : 'no-store, no-cache, private, must-revalidate' });
     res.end(buf);
   });
 }
