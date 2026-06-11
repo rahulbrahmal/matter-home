@@ -17,7 +17,8 @@ echo "[$(date '+%F %T')] deploying $LOCAL -> $REMOTE"
 CHANGED=$(git diff --name-only "$LOCAL" "$REMOTE")
 git reset --hard origin/main --quiet
 
-if echo "$CHANGED" | grep -q '^web/'; then
+# rebuild if web changed OR the built output is missing/incomplete
+if echo "$CHANGED" | grep -q '^web/' || [ ! -f "$REPO/web/dist/manifest.json" ]; then
   cd web
   if echo "$CHANGED" | grep -q '^web/package'; then npm install --no-audit --no-fund; fi
   npm run build
