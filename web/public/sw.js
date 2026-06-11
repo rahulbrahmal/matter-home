@@ -1,8 +1,11 @@
 // Minimal PWA service worker.
+// - BUILD is stamped by the sw-build-id vite plugin (closeBundle) — a new deploy = new bytes here,
+//   which is what makes the browser's SW update check fire and roll the cache.
 // - /api/* is NEVER touched (auth, SSE streaming, live commands go straight to network).
 // - Hashed build assets (/assets/*) are cache-first (immutable).
 // - Navigations are network-first with a cached app-shell fallback (offline open still renders).
-const CACHE = 'matter-home-v1';
+const BUILD = '__BUILD_ID__';
+const CACHE = 'matter-home-' + BUILD;
 const SHELL = ['./', 'manifest.json', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
@@ -11,8 +14,9 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((k) => k.startsWith('matter-home-') && k !== CACHE).map((k) => caches.delete(k))
+    )).then(() => self.clients.claim())
   );
 });
 
@@ -23,7 +27,8 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.includes('/assets/')) {
     e.respondWith(
       caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
-        const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return res;
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+        return res;
       }))
     );
     return;
@@ -32,7 +37,8 @@ self.addEventListener('fetch', (e) => {
   if (e.request.mode === 'navigate') {
     e.respondWith(
       fetch(e.request).then((res) => {
-        const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./', copy)); return res;
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./', copy)); }
+        return res;
       }).catch(() => caches.match('./'))
     );
   }

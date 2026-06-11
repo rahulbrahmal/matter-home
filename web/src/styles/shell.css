@@ -6,9 +6,10 @@
 @media (min-width: 768px)  { .main { padding: 30px 24px 60px; } }
 @media (min-width: 1200px) { .main { padding: 36px 32px 60px; } }
 
-/* header / greeting (22px/800 per spec; read-only top zone) */
+/* header / greeting (22px/800 per spec; read-only top zone).
+   Merged block (proportions): h1 = time greeting, .greet-line below = live stats. */
 .greeting { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-.greet-line { font-size: 14px; color: var(--muted); font-weight: 500; margin: 0 0 3px; }
+.greet-line { font-size: 14px; color: var(--muted); font-weight: 500; margin: 2px 0 0; }
 .greeting h1 { font-size: 22px; font-weight: 800; letter-spacing: -.03em; margin: 0; }
 @media (min-width: 768px) { .greeting h1 { font-size: 28px; } }
 .avatar { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
@@ -26,6 +27,12 @@
 .toast { background: rgba(40,20,15,.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,120,70,.35); color: #ffd0b8;
   padding: 11px 18px; border-radius: 14px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow);
   animation: rise var(--dur-2) var(--ease); }
+.toast.undo { display: flex; align-items: center; gap: 16px; background: rgba(28,30,38,.92);
+  border-color: var(--line-2); color: var(--ink); }           /* neutral, not error-tinted */
+.toast.ok { background: rgba(16,36,24,.9); border-color: rgba(110,225,150,.35); color: #bdeec9; }  /* update-delivered */
+.toast-act { position: relative; background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent-2); font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; }
+.toast-act::before { content: ''; position: absolute; inset: -15px -12px; }  /* 44px hit */
 @media (min-width: 768px) { .toasts { bottom: 24px; } }
 
 /* skeletons (64px = tile/room-card height: no layout shift on load) */

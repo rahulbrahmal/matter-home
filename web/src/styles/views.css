@@ -4,10 +4,9 @@
 .ess-row::-webkit-scrollbar, .clim-rail::-webkit-scrollbar, .scene-rail::-webkit-scrollbar,
 .chip-rail::-webkit-scrollbar, .pager::-webkit-scrollbar { display: none; }
 
-/* Home: essentials → climate rail → status → scenes → room cards */
+/* Home: essentials → climate rail → scenes → room cards (status strip merged into the greeting) */
 .ess-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 14px; scrollbar-width: none; }
 .clim-rail { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 2px 16px; scrollbar-width: none; }
-.status-strip { font-size: 13px; color: var(--muted); font-weight: 600; margin: 0 2px 14px; }
 .scene-rail { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 16px; scrollbar-width: none; }
 .room-cards { display: flex; flex-direction: column; gap: 10px; padding-bottom: 40px; }
 @media (min-width: 1200px) { .room-cards { display: grid; grid-template-columns: 1fr 1fr; } }

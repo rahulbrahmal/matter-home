@@ -1,4 +1,5 @@
-// Circuit tiles (spec §2.2): 2-up 174x64 Tile (tap-anywhere toggle, long-press = detail),
+// Circuit tiles (spec §2.2): 2-up 174x64 Tile (tap-anywhere toggle, long-press = detail; optional
+// `name` prop = display override, e.g. Rooms.jsx room-prefix shortener — detail sheet keeps u.name),
 // full-width DimmerTile (throttled inline slider), FanChip (3-detent in sheet), EssentialChip (live watts).
 import { view } from '../store.js';
 import { openSheet } from '../router.js';
@@ -18,7 +19,7 @@ export function Tile(props) {
       classList={{ on: u().on(), pending: u().pending(), unreachable: view(u().id)?.reachable === false, 'tile-enter': ei != null }}
       {...pressHandlers({ tap: () => { kick(); u().toggle(); }, hold: () => detail(u()) })}>
       <span class="tile-ico" classList={{ pop: pop() }}><Icon name={props.icon || iconFor(u())} /></span>
-      <span class="tile-meta"><span class="tile-name">{u().name}</span><span class="tile-sub num">{sub()}</span></span>
+      <span class="tile-meta"><span class="tile-name">{props.name ?? u().name}</span><span class="tile-sub num">{sub()}</span></span>
     </button>
   );
 }
@@ -48,7 +49,7 @@ export function DimmerTile(props) {
 export function FanChip(props) {
   const u = () => props.unit;
   const speed = () => { const l = u().level(); return l == null ? '' : l <= 40 ? ' · Low' : l <= 75 ? ' · Med' : ' · High'; };
-  return <Tile unit={props.unit} i={props.i} icon="fan" sub={u().on() ? `On${u().dimmable ? speed() : ''}` : 'Off'} />;
+  return <Tile unit={props.unit} i={props.i} name={props.name} icon="fan" sub={u().on() ? `On${u().dimmable ? speed() : ''}` : 'Off'} />;
 }
 
 /* ---------------- EssentialChip: 44px pill, live watts, amber when on ---------------- */

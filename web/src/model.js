@@ -4,7 +4,7 @@
 //  - climate groups: AC + its AC-Power switch(es) + hub-bound sensor (+ zone powers for Living Area)
 //  - rooms: curated Room[] incl. the Living Area zone and the synthetic Outdoor room
 import { createRoot, createMemo } from 'solid-js';
-import { state, view, cmd, isPending, runScene } from './store.js';
+import { state, view, cmd, isPending, runScene, setToasts } from './store.js';
 
 export const ZONES = [{ name: 'Living Area', rooms: ['Kitchen & Dining', 'Lounge', 'TV Area'] }];
 const isLight = (t) => ['light', 'switch', 'outlet'].includes(t);
@@ -177,9 +177,39 @@ export const essentials = () => {
   return { heater: find('Water Heater'), pump: find('Water Pump'), staircase, favorites };
 };
 
+/* ---------------- snapshot undo (tap-safety): capture BEFORE the bulk runScene ----------------
+   per-(id,ep) on-state via epOn + brightness for dimmables; inverse is just another runScene batch,
+   so optimistic overlays + SSE reconciliation work unchanged. One-level: a new undo replaces the old. */
+export const snapUnits = (units) => units.flatMap((u) => [
+  ...u.ids.map((t) => ({ id: t.id, kind: 'onOff', ep: t.ep, on: epOn(t.id, t.ep) })),
+  ...(u.dimmable && u.level() != null ? [{ id: u.id, kind: 'level', value: u.level() }] : []),
+]);
+let undoT;
+function pushUndo(title, snapshot) {
+  const dismiss = () => { clearTimeout(undoT); setToasts((a) => a.filter((x) => x.id !== 'undo')); };
+  clearTimeout(undoT);
+  setToasts((a) => [...a.filter((x) => x.id !== 'undo'),
+    { id: 'undo', msg: title, kind: 'undo', action: { label: 'Undo', fn: () => { dismiss(); runScene(snapshot); } } }]);
+  undoT = setTimeout(dismiss, 6000);
+}
+export function runUndoable(title, actions, snapshot) { const p = runScene(actions); pushUndo(title, snapshot); return p; }
+// scene rail entry point: snapshot exactly what the scene touches (on-state, brightness, AC setpoints)
+export function fireScene(scene) {
+  const actions = scene.actions(), seen = new Set(), snap = [];
+  for (const a of actions) {
+    const k = `${a.id}:${a.kind}:${a.ep ?? a.field ?? ''}`;
+    if (seen.has(k)) continue; seen.add(k);
+    if (a.kind === 'onOff') snap.push({ id: a.id, kind: 'onOff', ep: a.ep, on: epOn(a.id, a.ep) });
+    else if (a.kind === 'level') { const v = view(a.id)?.state.brightness; if (v != null) snap.push({ id: a.id, kind: 'level', value: v }); }
+    else if (a.kind === 'climate') { const v = view(a.id)?.state.climate?.[a.field]; if (v != null) snap.push({ id: a.id, kind: 'climate', field: a.field, value: v }); }
+  }
+  return runUndoable(scene.name, actions, snap);
+}
+
 // global "Lights off": every *-light + bathroom circuit; NEVER ac-power/appliance/fan/exhaust/hidden
-export const lightsOffActions = () => M.units().filter((u) => OFF_ROLES.includes(u.role) && !u.hidden).flatMap((u) => u.actions(false));
-export const lightsOff = () => runScene(lightsOffActions());
+const offUnits = () => M.units().filter((u) => OFF_ROLES.includes(u.role) && !u.hidden);
+export const lightsOffActions = () => offUnits().flatMap((u) => u.actions(false));
+export const lightsOff = () => { const us = offUnits(); return runUndoable('All lights off', us.flatMap((u) => u.actions(false)), snapUnits(us)); };
 
 /* ---------------- last-on snapshots + room master (one batched runScene each) ---------------- */
 const lastKey = (room) => 'home:lastOn:' + room.id;
@@ -189,14 +219,14 @@ export const lastOn = {
 };
 export function roomOff(room) {
   if (room.lights.some((u) => u.on())) lastOn.save(room);
-  runScene(room.lights.flatMap((u) => u.actions(false)));
+  runUndoable(`${room.name} off`, room.lights.flatMap((u) => u.actions(false)), snapUnits(room.lights));
 }
 export function roomRestore(room) {
   const keys = lastOn.load(room);
   let pick = room.lights.filter((u) => keys.includes(u.key));
   if (!pick.length) pick = room.lights.filter((u) => u.role === 'primary-light'); // fallback: the room's primaries
   if (!pick.length) pick = room.lights;
-  runScene(pick.flatMap((u) => u.actions(true)));
+  runUndoable(`${room.name} on`, pick.flatMap((u) => u.actions(true)), snapUnits(pick));
 }
 
 /* ---------------- home status strip ---------------- */

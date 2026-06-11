@@ -136,6 +136,21 @@
   background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .mini-master::before { content: ''; position: absolute; inset: -6px -2px; }  /* 32px visual, 44px hit */
 
+/* ---- hold-to-commit (tap-safety): fill is purely visual — the commit fires from the JS timer ----
+   .hold-fill clips itself (border-radius inherit) so hit-expanding ::before pseudos stay unclipped;
+   z-index -1 + isolation paints the fill above the control's surface but below its label/thumb. */
+.holdable { position: relative; isolation: isolate; }
+.hold-fill { position: absolute; inset: 0; z-index: -1; border-radius: inherit; overflow: hidden; pointer-events: none; }
+.hold-fill::before { content: ''; position: absolute; inset: 0; transform: scaleX(0); transform-origin: left;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); opacity: .9;
+  transition: transform 160ms var(--ease); }                  /* cancel/early release = drain back */
+.holding > .hold-fill::before { transform: scaleX(1); transition: transform var(--hold) linear; }
+.holdable.armed { box-shadow: 0 0 0 2px var(--accent-glow); } /* keyboard arm-and-confirm ring */
+.hold-tip { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; border-radius: inherit;
+  background: rgba(13,14,18,.82); color: var(--ink); font-size: 11px; font-weight: 800; letter-spacing: .5px;
+  text-transform: uppercase; pointer-events: none; animation: tip-in var(--dur-2) var(--ease); }
+@keyframes tip-in { from { opacity: 0; } }
+
 /* ---- generic text input + row ---- */
 .text { background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); border-radius: 13px;
   padding: 12px 14px; font: inherit; font-size: 15px; }

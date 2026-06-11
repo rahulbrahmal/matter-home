@@ -5,6 +5,7 @@
 @import './controls.css';
 @import './views.css';
 @import './sheet.css';
+@import './density.css';   /* LAST: phone-only (≤480) overrides — ≥481px renders untouched */
 
 /* Reduced motion (spec §3): near-instant, opacity-only; no staggers, loops or press transforms. */
 @media (prefers-reduced-motion: reduce) {
@@ -13,4 +14,7 @@
   .tile.pending::after, .ctile.pending::after, .ccard.pending::after,
   .ess-chip.pending::after, .scene-pill.pending::after { animation: none !important; }
   .tile:active, .chip:active, .pill:active, .ctile:active, .room-card:active, .power:hover { transform: none; }
+  /* hold-to-commit: fill becomes stepped (no smooth motion) but MUST still span the full
+     hold duration — the JS commit timer is unchanged, so the visual may not promise early. */
+  .holding > .hold-fill::before { transition-duration: var(--hold) !important; transition-timing-function: steps(4, end) !important; }
 }

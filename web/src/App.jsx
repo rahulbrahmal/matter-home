@@ -3,12 +3,12 @@
 // All grouping logic lives in model.js; all controls in ui/ + views/.
 import { onMount, createSignal, createMemo, Show, For } from 'solid-js';
 import { state, connect, login, auth, toasts, saveDevice, logout } from './store.js';
-import { rooms, needsSetup } from './model.js';
+import { rooms, needsSetup, homeStats } from './model.js';
 import { route, openSheet } from './router.js';
 import Home from './views/Home.jsx';
 import Rooms from './views/Rooms.jsx';
 import { SheetHost } from './ui/Sheet.jsx';
-import { Toasts, Toggle, Icon } from './ui/bits.jsx';
+import { Toasts, Toggle, Icon, Num } from './ui/bits.jsx';
 
 const greet = () => { const h = new Date().getHours(); return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 22 ? 'Good evening' : 'Good night'; };
 
@@ -62,6 +62,7 @@ function SettingsBody() {
 
 export default function App() {
   onMount(connect);
+  const stats = createMemo(homeStats); // greeting merge (proportions): h1 = greeting, sub-line = live stats
   return (
     <Show when={state.status !== 'needauth'} fallback={<><div class="ambient" /><Login /></>}>
       <div class="ambient" />
@@ -69,7 +70,9 @@ export default function App() {
       <Show when={route().name === 'room'} fallback={
         <main class="main home-view">
           <header class="greeting">
-            <div><p class="greet-line">{greet()}</p><h1>Welcome home</h1></div>
+            <div><h1>{greet()}</h1>
+              <p class="greet-line num"><Show when={state.status !== 'loading' || rooms().length} fallback="Welcome home">
+                <Num value={stats().lightsOn} /> of {stats().lights} lights on{stats().avgTemp != null ? ` · ${stats().avgTemp}° avg` : ''}</Show></p></div>
             <button class="avatar" aria-label="Settings" onClick={() => openSheet({ body: () => <SettingsBody /> })}><Icon name="user" size={19} /></button>
           </header>
           <Home />

@@ -44,6 +44,51 @@ export function throttle(fn, ms = 150) {
 }
 export const fmtW = (p) => p == null ? null : p >= 1000 ? (p / 1000).toFixed(1) + ' kW' : Math.round(p) + ' W';
 
+// commit haptic (only on commit — never on hold-start/cancel): vibrate where supported;
+// iOS fallback = clicking a hidden <input type=checkbox switch> (system tick on 17.4+)
+export function haptic() {
+  try {
+    if (navigator.vibrate) return navigator.vibrate([12, 60, 12]);
+    const el = Object.assign(document.createElement('input'), { type: 'checkbox' });
+    el.setAttribute('switch', ''); el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.append(el); el.click(); el.remove();
+  } catch {}
+}
+
+/* ---------------- hold-to-commit (tap-safety) ----------------
+   pointerdown → 80ms intent timer (scroll touchdowns never flash) → visual fill + JS commit timer
+   (CSS fill is purely visual). >tolPx move / pointercancel / pointerleave cancels; the post-commit
+   synthetic click and all bare clicks are swallowed — a quick tap shows only a transient 'Hold' hint.
+   Keyboard: Enter/Space arms ('Press again to confirm', 3s auto-disarm), second press commits. */
+let guardT = 0;
+export const holdGuard = () => Date.now() - guardT < 400; // a hold gesture just happened — don't navigate
+export function useHold(commit, { ms = 600, intent = 80, tolPx = 10 } = {}) {
+  const [holding, setHolding] = createSignal(false);
+  const [hint, setHint] = createSignal(false);
+  const [armed, setArmed] = createSignal(false);
+  let iT, cT, hT, aT, x0, y0, down = false;
+  const stop = () => { clearTimeout(iT); clearTimeout(cT); setHolding(false); };
+  const cancel = () => { if (!down) return; down = false; guardT = Date.now(); stop(); };
+  const fire = () => { down = false; guardT = Date.now(); stop(); setHint(false); haptic(); commit(); };
+  onCleanup(() => [iT, cT, hT, aT].forEach(clearTimeout));
+  return {
+    holding, hint, armed,
+    props: {
+      onPointerDown: (e) => { if (e.button > 0) return; down = true; guardT = Date.now(); x0 = e.clientX; y0 = e.clientY;
+        stop(); iT = setTimeout(() => { setHolding(true); cT = setTimeout(fire, ms); }, intent); },
+      onPointerMove: (e) => { if (down && Math.hypot(e.clientX - x0, e.clientY - y0) > tolPx) cancel(); },
+      onPointerUp: () => { if (!down) return; cancel();                       // released early: teach via hint
+        setHint(true); clearTimeout(hT); hT = setTimeout(() => setHint(false), 1300); },
+      onPointerCancel: cancel, onPointerLeave: cancel,
+      onContextMenu: (e) => e.preventDefault(),
+      onClick: (e) => { e.preventDefault(); e.stopPropagation();
+        if (e.detail) return;                                                 // pointer clicks swallowed
+        if (armed()) { clearTimeout(aT); setArmed(false); haptic(); commit(); }
+        else { setArmed(true); clearTimeout(aT); aT = setTimeout(() => setArmed(false), 3000); } },
+    },
+  };
+}
+
 // tap-anywhere + long-press(400ms, cancel on >8px move) + contextmenu → detail (spec §2.2 Tile)
 export function pressHandlers({ tap, hold }) {
   let t, x0, y0, held = false;
@@ -97,20 +142,27 @@ export function Num(props) {
   return <span class="num">{d() == null || Number.isNaN(+d()) ? '–' : (+d()).toFixed(dp())}</span>;
 }
 
-/* ---------------- Toggle: 52x32 sprung switch ---------------- */
+/* ---------------- Toggle: 52x32 sprung switch; optional hold = press-and-hold-to-commit ---------------- */
 export function Toggle(props) {
+  const h = props.hold ? useHold(() => props.onChange?.(!props.checked), props.hold === true ? {} : props.hold) : null;
   return (
-    <button type="button" class="tgl" role="switch" aria-checked={!!props.checked} aria-label={props.label}
-      classList={{ on: !!props.checked, pending: !!props.pending }}
-      onClick={(e) => { e.stopPropagation(); props.onChange?.(!props.checked); }}>
+    <button type="button" class="tgl" role="switch" aria-checked={!!props.checked}
+      aria-label={h?.armed() ? 'Press again to confirm' : props.label}
+      classList={{ on: !!props.checked, pending: !!props.pending, holdable: !!h, holding: !!h?.holding(), armed: !!h?.armed() }}
+      {...(h ? h.props : { onClick: (e) => { e.stopPropagation(); props.onChange?.(!props.checked); } })}>
+      <Show when={h}><span class="hold-fill" /></Show>
       <span class="tgl-thumb" />
+      <Show when={h?.hint()}><span class="hold-tip">Hold</span></Show>
     </button>
   );
 }
 
 /* ---------------- Toasts / Skeletons ---------------- */
 export function Toasts(props) {
-  return <div class="toasts"><For each={props.items}>{(t) => <div class="toast" classList={{ [t.kind]: !!t.kind }}>{t.msg}</div>}</For></div>;
+  return <div class="toasts" role="status"><For each={props.items}>{(t) => (
+    <div class="toast" classList={{ [t.kind]: !!t.kind }}>{t.msg}
+      <Show when={t.action}><button class="toast-act" onClick={() => t.action.fn()}>{t.action.label}</button></Show>
+    </div>)}</For></div>;
 }
 export function Skeletons(props) {
   return <div class={props.class || 'grid2'}>{Array.from({ length: props.n ?? 8 }).map(() => <div class="skeleton" />)}</div>;

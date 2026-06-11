@@ -1,0 +1,75 @@
+/* ============ Density pass (proportions, field complaint 3) — imported LAST ============
+   EVERY rule is max-width-scoped: ≥481px (phone landscape, tablet, desktop) renders untouched.
+   Buckets: ≤480 shared · 410–480 (Pro Max) · 360–409 · ≤359. Visuals may shrink below 44px ONLY
+   behind the existing pseudo-element hit-inset pattern (44px law, ≥8px between adjacent hits);
+   skeleton heights track row heights per bucket so load never shifts layout. */
+
+/* ---- ≤480: shared phone tightening ---- */
+@media (max-width: 480px) {
+  /* chips & pills 44→38 visual; ::before inset -4px 0 = 46px hit, ≥8px clear of neighbours
+     (rail-chip excluded: already 36px with its own -4px inset). Rails gain 4px top padding so
+     the hit inset is never clipped by their overflow-x scrollport. */
+  .chip:not(.rail-chip), .pill { position: relative; height: 38px; padding: 0 14px; }
+  .chip:not(.rail-chip)::before, .pill::before { content: ''; position: absolute; inset: -4px 0; }
+  .ess-row, .scene-rail { padding: 4px 2px 12px; }
+  /* icon plates scale with the shorter rows (non-interactive — no hit math) */
+  .tile-ico, .room-glyph { width: 32px; height: 32px; border-radius: 11px; }
+  /* toggle 52x32 → 46x28 visual (thumb + travel recomputed); ::before -8px -3px = 52x44 hit */
+  .tgl { width: 46px; height: 28px; }
+  .tgl::before { inset: -8px -3px; }
+  .tgl-thumb { width: 20px; height: 20px; }
+  .tgl.on .tgl-thumb { transform: translateX(18px); }
+  /* mini-master 28px visual / 44px hit; ctile-more 32px visual / 44px hit.
+     sec-row gets +2px below: keeps the mini-master-hit → tile-grid clearance at today's 4px. */
+  .mini-master { height: 28px; padding: 0 12px; }
+  .mini-master::before { inset: -8px -2px; }
+  .sec-row { margin-bottom: 12px; }
+  .ctile-more { width: 32px; height: 32px; }
+  .ctile-more::before { inset: -6px; }
+  /* avatar + power circles 40px visual / 44px hit via ::after (::before is taken on .tile kin) */
+  .avatar, .power { position: relative; width: 40px; height: 40px; }
+  .avatar::after, .power::after { content: ''; position: absolute; inset: -2px; }
+  /* climate tiles: tighter padding + temp leading so the 84/82/80px heights fit */
+  .ctile { padding: 10px 12px; }
+  .ctile-temp { font-size: 20px; line-height: 1.2; }
+  /* sheet: title 21→18, icon plate 52→44 (sheet-close, seg, dial steppers stay ≥44) */
+  .sheet-title { font-size: 18px; }
+  .c-ico { width: 44px; height: 44px; }
+  /* sliders: tracks 10→8px, thumbs recentered ((8-28)/2, (8-26)/2); 44px hit-heights unchanged */
+  .dim-slider::-webkit-slider-runnable-track, .block input[type=range]::-webkit-slider-runnable-track { height: 8px; }
+  .dim-slider::-moz-range-track, .block input[type=range]::-moz-range-track { height: 8px; }
+  .dim-slider::-webkit-slider-thumb { margin-top: -10px; }
+  .block input[type=range]::-webkit-slider-thumb { margin-top: -9px; }
+  /* dial 230→210 (svg scales via its 230 viewBox) */
+  .dial { width: 210px; height: 210px; }
+  .dial svg { width: 100%; height: 100%; }
+}
+
+/* ---- 410–480 (Pro Max class): 56px rows + 3-col tile grid (names pre-shortened by Rooms.jsx) ---- */
+@media (min-width: 410px) and (max-width: 480px) {
+  .tile, .room-card, .skeleton { height: 56px; }
+  .grid2 { grid-template-columns: repeat(3, 1fr); }
+  .grid2 .tile { padding: 0 10px; gap: 9px; }
+  .ctile { flex-basis: 216px; height: 84px; }   /* next tile peeks ~172px @430 */
+  .greeting h1 { font-size: 20px; }
+  .page-head h2 { font-size: 19px; }
+}
+
+/* ---- 360–409 ---- */
+@media (min-width: 360px) and (max-width: 409px) {
+  .tile, .room-card, .skeleton { height: 54px; }
+  .chip:not(.rail-chip), .pill { height: 36px; }   /* + inset -4px 0 above = 44px hit exactly */
+  .ctile { flex-basis: 204px; height: 82px; }      /* peek ~144px @390 */
+  .greeting h1 { font-size: 19px; }
+  .page-head h2 { font-size: 18px; }
+}
+
+/* ---- ≤359 ---- */
+@media (max-width: 359px) {
+  .tile, .room-card, .skeleton { height: 52px; }
+  .chip:not(.rail-chip), .pill { height: 36px; }
+  .ctile { flex-basis: 188px; height: 80px; }      /* peek ~90px @320 */
+  .greeting h1 { font-size: 18px; }
+  .page-head h2 { font-size: 17px; }
+  .dial { width: 200px; height: 200px; }
+}
