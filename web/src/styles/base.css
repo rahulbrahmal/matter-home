@@ -21,3 +21,16 @@ button { font-family: inherit; }
 @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 @keyframes sk { to { background-position: -200% 0; } }
 @keyframes rise { from { transform: translateY(40px); opacity: .4; } }
+
+/* ============ iPhone / standalone-PWA polish ============ */
+html { -webkit-text-size-adjust: 100%; }
+body { overscroll-behavior-y: none; }                    /* no rubber-band fighting the pager / pull-to-refresh */
+input, select, textarea { font-size: 16px; }            /* prevent iOS focus auto-zoom */
+.tile, .ctile, .ccard, .room-card, .chip, .ess-chip, .scene-pill, .tgl, .power {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;  /* long-press = detail, not text selection */
+}
+@media (display-mode: standalone) {
+  body { overscroll-behavior: none; }
+  /* keep the very top tappable area clear of the Dynamic Island */
+  .home-view .greeting { padding-top: 6px; }
+}
