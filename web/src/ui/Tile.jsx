@@ -15,7 +15,7 @@ export function Tile(props) {
   const [pop, kick] = usePop();              // icon spring on toggle (§3)
   const sub = () => props.sub ?? (u().on() ? (u().dimmable && u().level() != null ? `On · ${u().level()}%` : 'On') : 'Off');
   return (
-    <button class="tile" aria-pressed={u().on()} style={ei != null ? { '--i': ei } : undefined}
+    <button class="tile" aria-pressed={u().on()} aria-busy={u().pending()} style={ei != null ? { '--i': ei } : undefined}
       classList={{ on: u().on(), pending: u().pending(), unreachable: view(u().id)?.reachable === false, 'tile-enter': ei != null }}
       {...pressHandlers({ tap: () => { kick(); u().toggle(); }, hold: () => detail(u()) })}>
       <span class="tile-ico" classList={{ pop: pop() }}><Icon name={props.icon || iconFor(u())} /></span>
@@ -32,7 +32,7 @@ export function DimmerTile(props) {
   const lvl = () => u().level();
   const setT = throttle((v) => u().setLevel(v), 150); // onInput throttled; onChange = final commit
   return (
-    <div class="tile dimmer-tile" style={ei != null ? { '--i': ei } : undefined}
+    <div class="tile dimmer-tile" aria-busy={u().pending()} style={ei != null ? { '--i': ei } : undefined}
       classList={{ on: u().on(), pending: u().pending(), 'tile-enter': ei != null }}>
       <button class="dim-main" aria-pressed={u().on()}
         {...pressHandlers({ tap: () => { kick(); u().toggle(); }, hold: () => detail(u()) })}>
@@ -58,7 +58,7 @@ export function EssentialChip(props) {
   const ei = introIndex(props.i);
   const w = () => props.watts !== undefined ? props.watts : u().watts?.();
   return (
-    <button class="chip ess-chip" aria-pressed={u().on()} style={ei != null ? { '--i': ei } : undefined}
+    <button class="chip ess-chip" aria-pressed={u().on()} aria-busy={u().pending()} style={ei != null ? { '--i': ei } : undefined}
       classList={{ on: u().on(), pending: u().pending(), 'tile-enter': ei != null }}
       onClick={() => u().toggle()}>
       <Icon name={props.icon || (u().role === 'appliance' ? 'plug' : 'bulb')} size={16} />

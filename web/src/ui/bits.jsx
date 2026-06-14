@@ -148,6 +148,7 @@ export function Toggle(props) {
   return (
     <button type="button" class="tgl" role="switch" aria-checked={!!props.checked}
       aria-label={h?.armed() ? 'Press again to confirm' : props.label}
+      aria-busy={!!props.pending}
       classList={{ on: !!props.checked, pending: !!props.pending, holdable: !!h, holding: !!h?.holding(), armed: !!h?.armed() }}
       {...(h ? h.props : { onClick: (e) => { e.stopPropagation(); props.onChange?.(!props.checked); } })}>
       <Show when={h}><span class="hold-fill" /></Show>
