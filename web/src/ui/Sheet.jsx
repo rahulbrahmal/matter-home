@@ -2,7 +2,7 @@
 // drag-to-dismiss with 1:1 follow + velocity, stays mounted while closing for the exit animation,
 // focus trap + Escape + scroll lock, payload-KEYED bodies (fixes the stale-props bug).
 import { Show, For, createSignal, createEffect, onCleanup } from 'solid-js';
-import { state, view, cmd, isPending, runScene, acSetMode, togglePower, saveDevice, saveGang } from '../store.js';
+import { state, view, cmd, pendingVisible, runScene, acSetMode, togglePower, saveDevice, saveGang } from '../store.js';
 import { acPowered } from '../model.js';
 import { sheet, closeSheet } from '../router.js';
 import { Icon, Toggle, throttle, fmtW, Num } from './bits.jsx';
@@ -146,7 +146,7 @@ export function LightDetail(props) {
 function PowerRow(props) {
   const on = () => !!view(props.p.id)?.state.on?.some((o) => o.on);
   return <div class="gang-row"><span class="gr-name">{props.name}</span>
-    <Toggle checked={on()} pending={isPending(props.p.id)} label={props.name} onChange={(v) => togglePower(props.p, v)} /></div>;
+    <Toggle checked={on()} pending={pendingVisible(props.p.id)} label={props.name} onChange={(v) => togglePower(props.p, v)} /></div>;
 }
 
 export function ClimateDetail(props) {

@@ -1,8 +1,8 @@
 // Shell only (spec §4 step 4): Login gate → header (greeting + avatar → Settings sheet) →
-// route switch (#/ Home, #/room/<id> pager) → SheetHost → Toasts → reconnect banner.
+// route switch (#/ Home, #/room/<id> pager) → SheetHost → Toasts → connection strip.
 // All grouping logic lives in model.js; all controls in ui/ + views/.
 import { onMount, createSignal, createMemo, Show, For } from 'solid-js';
-import { state, connect, login, auth, toasts, saveDevice, logout } from './store.js';
+import { state, connect, login, auth, toasts, saveDevice, logout, connBar } from './store.js';
 import { rooms, needsSetup, homeStats } from './model.js';
 import { route, openSheet } from './router.js';
 import Home from './views/Home.jsx';
@@ -28,6 +28,19 @@ function Login() {
       <Show when={err()}><div class="login-err">{err()}</div></Show>
       <button class="login-btn" disabled={busy()}>{busy() ? 'Connecting…' : 'Unlock'}</button>
     </form></div>
+  );
+}
+
+function ConnectionStrip() {
+  const label = () => connBar().kind === 'offline' ? 'Offline — retrying' : 'Reconnecting…';
+  return (
+    <div class="connbar-slot" aria-hidden={!connBar().show}>
+      <div class="connbar" classList={{ show: connBar().show, offline: connBar().kind === 'offline' }}
+        role={connBar().show ? 'status' : undefined} aria-live={connBar().show ? 'polite' : undefined} aria-atomic="true">
+        <span class="connbar-dot" aria-hidden="true" />
+        <span>{label()}</span>
+      </div>
+    </div>
   );
 }
 
@@ -67,7 +80,7 @@ export default function App() {
   return (
     <Show when={state.status !== 'needauth'} fallback={<><div class="ambient" /><Login /></>}>
       <div class="ambient" />
-      <Show when={state.status === 'reconnecting'}><div class="banner">Reconnecting…</div></Show>
+      <ConnectionStrip />
       <Show when={route().name === 'room'} fallback={
         <>
           <main class="main home-view">

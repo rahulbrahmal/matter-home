@@ -15,6 +15,7 @@ function ScenePill(props) {
   return (
     <button class="pill scene-pill holdable" title={s().sub}
       aria-label={h.armed() ? 'Press again to confirm' : s().name}
+      aria-busy={!!props.running}
       classList={{ run: props.running, pending: props.running, holding: h.holding(), armed: h.armed() }}
       {...h.props}>
       <span class="hold-fill" /><Icon name={SCENE_ICONS[s().id] || 'bolt'} size={15} /> {s().name}

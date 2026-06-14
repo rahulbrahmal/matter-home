@@ -4,7 +4,7 @@
 //  - climate groups: AC + its AC-Power switch(es) + hub-bound sensor (+ zone powers for Living Area)
 //  - rooms: curated Room[] incl. the Living Area zone and the synthetic Outdoor room
 import { createRoot, createMemo } from 'solid-js';
-import { state, view, cmd, isPending, runScene, setToasts } from './store.js';
+import { state, view, cmd, pendingVisible, runScene, setToasts } from './store.js';
 
 export const ZONES = [{ name: 'Living Area', rooms: ['Kitchen & Dining', 'Lounge', 'TV Area'] }];
 const isLight = (t) => ['light', 'switch', 'outlet'].includes(t);
@@ -48,7 +48,7 @@ function mkUnit(d, eps, name) {
     key: `${d.id}:${eps.join('+')}`, id: d.id, ids, name, room: d.room,
     role: roleOf(name), dimmable: !!d.caps?.level, hidden: !!d.hidden,
     on: () => ids.some((t) => epOn(t.id, t.ep)),                 // fused state = OR
-    pending: () => ids.some((t) => isPending(t.id)),
+    pending: () => ids.some((t) => pendingVisible(t.id)),
     level: () => view(d.id)?.state.brightness,
     watts: () => view(d.id)?.state.power,
     setLevel: (v) => cmd.level(d.id, v),
