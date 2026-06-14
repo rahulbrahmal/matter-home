@@ -26,17 +26,20 @@
 .page-foot { display: flex; justify-content: flex-end; padding: 10px 0 30px; }
 
 /* bottom chip rail, docked above the safe area */
-.chip-rail { flex: 0 0 auto; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+.chip-rail { flex: 0 0 auto; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none;
   padding: 10px max(14px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   border-top: 1px solid var(--line); background: rgba(17,19,25,.92); backdrop-filter: blur(20px); }
-.rail-chip { position: relative; height: 36px; padding: 0 14px; font-size: 13px; }
-.rail-chip::before { content: ''; position: absolute; inset: -4px; }   /* 36px visual, 44px hit */
+.chip-rail.home-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; }
+.rail-chip { position: relative; height: 44px; padding: 0 16px; font-size: 14px; }
+.rail-chip::before { content: ''; position: absolute; inset: -4px 0; }   /* 44px visual, 52px hit */
 .rail-chip.active { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
-.rail-chip.lit:not(.active)::after { content: ''; position: absolute; top: 5px; right: 7px; width: 6px; height: 6px;
+.rail-chip.lit:not(.active)::after { content: ''; position: absolute; top: 50%; transform: translateY(-50%); right: 9px; width: 6px; height: 6px;
   border-radius: 50%; background: var(--accent); }
+.rail-chip.skeleton { flex: 0 0 auto; width: 84px; height: 44px; border-radius: var(--r-pill); border: 1px solid var(--line); }
 
 /* ≥768: centered 640px pages; the chip rail becomes a left rail listing rooms (spec §2.1) */
 @media (min-width: 768px) {
+  .chip-rail.home-dock { display: none; }
   .rooms { flex-direction: row; }
   .page { padding: 24px max(24px, calc((100% - 640px) / 2)) 40px; }
   .chip-rail { order: -1; flex-direction: column; align-items: stretch; width: 240px; overflow-y: auto; overflow-x: hidden;

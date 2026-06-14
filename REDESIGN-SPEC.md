@@ -9,7 +9,7 @@ Authoritative spec, merged from the groupings / mobile-ux / code audits. Baselin
 | Conflict | Decision | Why |
 |---|---|---|
 | Room bottom-sheet (groupings) vs Rooms pager+tabs (mobile-ux/code) | **Full-screen Room pages in a horizontal scroll-snap pager, hash-routed (`#/room/<id>`)**. Bottom sheets are reserved exclusively for device detail (climate dial, Windows group, dimmer). | One sheet layer max; back-gesture works via router; sheets-on-sheets is complexity. |
-| 3-tab bar (mobile-ux) / Home-Rooms-Edit tabs (code) vs two-level nav (groupings) | **No tab bar.** Two routes only: `#/` (Home) and `#/room/<id>`. Room pages get a bottom-docked chip rail with a leading Home chip. Scenes = pill rail on Home. Global edit mode is deleted. | Simplicity wins; the resident's top-5 actions are all 1 tap on Home, so a persistent tab bar buys nothing. |
+| 3-tab bar (mobile-ux) / Home-Rooms-Edit tabs (code) vs two-level nav (groupings) | **No app-mode tab bar.** Two routes only: `#/` (Home) and `#/room/<id>`. Mobile Home and Room pages share a persistent `RoomRail` room switcher (leading Home chip + room chips), while ≥768px keeps Home unchanged and Room pages use the left rail. Scenes = pill rail on Home. Global edit mode is deleted. | Simplicity still wins: the persistent rail is a room switcher for orientation and thumb navigation, not Home/Rooms/Edit app tabs. |
 | Full-width LightRow (code) vs 2-up 64px tiles (mobile-ux) | **2-up 174×64 tiles** for all binary circuits. Full-width fixed-height DimmerTile only for the two hero dimmers (Baby's Room, Study ceiling). | Halves scroll depth; tap-anywhere-to-toggle is the fastest on/off. |
 | 1 Windows tile (groupings) vs 2 cover tiles (mobile-ux) | **ONE Windows tile**, internally composed of two derived groups (Curtains, Shades) from `groupCovers()`. | "Close the living room" = 2 taps for 8 motors. |
 | Favorites grid (mobile-ux) vs curated essentials (groupings) | **Essentials chip row = 4 fixed chips + any user-favorited circuits appended.** No separate favorites grid. | The persisted `favorite` flag gets a surface without a new section. |
@@ -124,7 +124,7 @@ Tap budget: top-5 daily actions = 1 tap; any of the ~38 real light circuits ≤ 
 | Tile columns | 2 (`repeat(auto-fill, minmax(148px, 1fr))`) | 3 | 4–5 |
 | Grid gap | 10 px | 10 px | 12 px |
 | Climate card / hero dimmer / Windows tile | `grid-column: 1 / -1` below 600 px | `span 2` | `span 2` |
-| Bottom padding | 96 px + `env(safe-area-inset-bottom)` (chip rail) | 60 px | 60 px |
+| Bottom padding | Home reserves 72 px + `env(safe-area-inset-bottom)` for the persistent room rail; Room pages reserve via the docked rail | 60 px | 60 px |
 
 Tile heights are **fixed** — no min-height growth, no layout shift ever.
 
@@ -146,7 +146,7 @@ One-hand reach map (390×844): top 25% = read-only (greeting, status, headers); 
 | `SectionHead` (`ui/bits.jsx`) | `{ title, count, ambient?, onOff? }` | 12 px muted, tabular-nums | Mini-master pill 44 px right-aligned; ambient sensor readout text. |
 | `Toggle` (`ui/bits.jsx`) | `{ checked, onChange, pending }` | 52×32, `role="switch" aria-checked`, sprung thumb | Shimmer while `isPending`. |
 | `Sheet` (`ui/Sheet.jsx`) | `{ open, onClose, snap? }` | max-width 520, radius 28 top, snap points 62%/92dvh (climate) | History-aware (router pushes state; back gesture closes). Drag-to-dismiss 1:1 finger follow; dismiss at >25% travel or velocity >0.5 px/ms, else spring-back 280 ms. 44 px close button. Stays mounted through closing state for exit animation. Focus trap, Escape, scroll lock, return focus to origin. Content order: live controls first; admin (rename / favorite / hide) in a `Settings` `<details>` disclosure LAST. Bodies rendered via `<Show keyed>` — fixes the stale-props bug at components.jsx:97-99. |
-| `RoomChipRail` (room pages) | `{ rooms, active }` | docked above safe area; chips 36 px visual / 44 px hit, radius 18, 8 px gap; leading "Home" chip | Auto-scrolls active into view; 6 px accent dot when room has anything on. |
+| `RoomRail` (mobile Home + room pages; left rail ≥768 only on room pages) | `{ rooms, active, dock }` | docked above safe area on mobile; chips 44 px visual / 52 px hit, radius 18, 10 px gap; leading Home chip | Home chip can be active; active chip auto-scrolls into view; 6 px accent dot when room has anything on; reduced-motion uses instant scroll. |
 | Views: `views/Home.jsx`, `views/Rooms.jsx` | — | Rooms = `scroll-snap-type: x mandatory` pager, pages `flex: 0 0 100%`, vertical scroll inside; `scrollend` (IntersectionObserver fallback) syncs route + rail | Page order: ClimateCard → WindowsTile → hero DimmerTile → light sections w/ sub-headers → fan chip → bathroom sub-cluster → footer "Turn off <room>" pill (44 px, bottom-right). |
 
 Scroll budgets (must hold): Home ≤ 2 screens; worst room page (Living Area ≈ 890 px) ≤ 1.3 screens; today's All view is ~6,500 px — that page ceases to exist.

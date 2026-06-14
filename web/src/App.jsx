@@ -7,6 +7,7 @@ import { rooms, needsSetup, homeStats } from './model.js';
 import { route, openSheet } from './router.js';
 import Home from './views/Home.jsx';
 import Rooms from './views/Rooms.jsx';
+import RoomRail from './ui/RoomRail.jsx';
 import { SheetHost } from './ui/Sheet.jsx';
 import { Toasts, Toggle, Icon, Num } from './ui/bits.jsx';
 
@@ -68,15 +69,18 @@ export default function App() {
       <div class="ambient" />
       <Show when={state.status === 'reconnecting'}><div class="banner">Reconnecting…</div></Show>
       <Show when={route().name === 'room'} fallback={
-        <main class="main home-view">
-          <header class="greeting">
-            <div><h1>{greet()}</h1>
-              <p class="greet-line num"><Show when={state.status !== 'loading' || rooms().length} fallback="Welcome home">
-                <Num value={stats().lightsOn} /> of {stats().lights} lights on{stats().avgTemp != null ? ` · ${stats().avgTemp}° avg` : ''}</Show></p></div>
-            <button class="avatar" aria-label="Settings" onClick={() => openSheet({ body: () => <SettingsBody /> })}><Icon name="user" size={19} /></button>
-          </header>
-          <Home />
-        </main>
+        <>
+          <main class="main home-view">
+            <header class="greeting">
+              <div><h1>{greet()}</h1>
+                <p class="greet-line num"><Show when={state.status !== 'loading' || rooms().length} fallback="Welcome home">
+                  <Num value={stats().lightsOn} /> of {stats().lights} lights on{stats().avgTemp != null ? ` · ${stats().avgTemp}° avg` : ''}</Show></p></div>
+              <button class="avatar" aria-label="Settings" onClick={() => openSheet({ body: () => <SettingsBody /> })}><Icon name="user" size={19} /></button>
+            </header>
+            <Home />
+          </main>
+          <RoomRail rooms={rooms()} active="home" dock="fixed" />
+        </>
       }>
         <Rooms />
       </Show>
