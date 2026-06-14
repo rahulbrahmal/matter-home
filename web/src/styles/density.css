@@ -6,9 +6,9 @@
 
 /* ---- ≤480: shared phone tightening ---- */
 @media (max-width: 480px) {
-  /* chips & pills 44→38 visual; ::before inset -4px 0 = 46px hit, ≥8px clear of neighbours
-     (rail-chip excluded: already 36px with its own -4px inset). Rails gain 4px top padding so
-     the hit inset is never clipped by their overflow-x scrollport. */
+  /* non-rail chips & pills 44→38 visual; ::before inset -4px 0 = 46px hit, ≥8px clear of neighbours.
+     Room rail chips intentionally stay 44px visual / 52px hit in every phone bucket, with the
+     rail gap supplying adjacent-hit clearance. Rails gain 4px top padding so hit insets are safe. */
   .chip:not(.rail-chip), .pill { position: relative; height: 38px; padding: 0 14px; }
   .chip:not(.rail-chip)::before, .pill::before { content: ''; position: absolute; inset: -4px 0; }
   .ess-row, .scene-rail { padding: 4px 2px 12px; }

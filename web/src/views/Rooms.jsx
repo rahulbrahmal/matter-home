@@ -7,7 +7,8 @@ import { route, go } from '../router.js';
 import { Tile, DimmerTile, FanChip } from '../ui/Tile.jsx';
 import { ClimateCard } from '../ui/ClimateTile.jsx';
 import { WindowsTile } from '../ui/WindowsTile.jsx';
-import { SectionHead, Icon, Skeletons } from '../ui/bits.jsx';
+import { SectionHead, Skeletons } from '../ui/bits.jsx';
+import RoomRail from '../ui/RoomRail.jsx';
 
 // section mini-master: only the units in the room's master/off scope (no fans/exhausts).
 // Stays ONE-TAP — navigating into the room established intent — but gains a snapshot-undo toast.
@@ -49,21 +50,6 @@ function Page(props) {
   );
 }
 
-function RoomChipRail(props) {
-  let rail;
-  createEffect(() => { props.active; queueMicrotask(() =>
-    rail?.querySelector('.active')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })); });
-  return (
-    <nav class="chip-rail" aria-label="Rooms" ref={rail}>
-      <button class="chip rail-chip" onClick={() => go('/')} aria-label="Home"><Icon name="home" size={16} /></button>
-      <For each={props.rooms}>{(r) => (
-        <button class="chip rail-chip" classList={{ active: r.id === props.active, lit: r.counts.on() > 0 }}
-          aria-current={r.id === props.active ? 'page' : undefined}
-          onClick={() => go('/room/' + r.id)}>{r.name}</button>)}</For>
-    </nav>
-  );
-}
-
 export default function Rooms() {
   let pager;
   const activeId = () => route().room;
@@ -97,7 +83,7 @@ export default function Rooms() {
           <For each={rooms()}>{(r) => <Page room={r} />}</For>
         </Show>
       </div>
-      <RoomChipRail rooms={rooms()} active={activeId()} />
+      <RoomRail rooms={rooms()} active={activeId()} dock="flex" />
     </div>
   );
 }
