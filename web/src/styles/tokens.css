@@ -5,7 +5,7 @@
   --ink: #f5f6f9; --muted: #969db0; --faint: #5d6577;
   --accent: #ff7a42; --accent-2: #ff9d4d; --accent-ink: #1a0d05;
   --accent-soft: rgba(255,122,66,.14); --accent-glow: rgba(255,122,66,.45);
-  --cool: #5bb8ff; --good: #54d98b;
+  --cool: #5bb8ff; --good: #54d98b; --warn: #f7b955; --warn-soft: rgba(247,185,85,.14);
   --r-card: 22px; --r-lg: 28px; --r-pill: 999px;
   --sp: clamp(14px, 2.2vw, 22px);
   --font: "Plus Jakarta Sans", -apple-system, system-ui, sans-serif;

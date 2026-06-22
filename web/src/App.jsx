@@ -3,7 +3,7 @@
 // All grouping logic lives in model.js; all controls in ui/ + views/.
 import { onMount, createSignal, createMemo, Show, For } from 'solid-js';
 import { state, connect, login, auth, toasts, saveDevice, logout, connBar } from './store.js';
-import { rooms, needsSetup, homeStats } from './model.js';
+import { rooms, needsSetup, homeStats, offlineCount } from './model.js';
 import { route, openSheet } from './router.js';
 import Home from './views/Home.jsx';
 import Rooms from './views/Rooms.jsx';
@@ -32,11 +32,18 @@ function Login() {
 }
 
 function ConnectionStrip() {
-  const label = () => connBar().kind === 'offline' ? 'Offline — retrying' : 'Reconnecting…';
+  // gateway connection (reconnecting/offline) takes precedence; when it's live but the controller
+  // can't reach some devices, show a distinct "devices offline" banner instead.
+  const offline = () => (connBar().show ? 0 : offlineCount());
+  const show = () => connBar().show || offline() > 0;
+  const kind = () => connBar().show ? connBar().kind : 'devices';
+  const label = () => connBar().show
+    ? (connBar().kind === 'offline' ? 'Offline — retrying' : 'Reconnecting…')
+    : (offline() === 1 ? '1 device offline' : `${offline()} devices offline`);
   return (
-    <div class="connbar-slot" aria-hidden={!connBar().show}>
-      <div class="connbar" classList={{ show: connBar().show, offline: connBar().kind === 'offline' }}
-        role={connBar().show ? 'status' : undefined} aria-live={connBar().show ? 'polite' : undefined} aria-atomic="true">
+    <div class="connbar-slot" aria-hidden={!show()}>
+      <div class="connbar" classList={{ show: show(), offline: kind() === 'offline', devices: kind() === 'devices' }}
+        role={show() ? 'status' : undefined} aria-live={show() ? 'polite' : undefined} aria-atomic="true">
         <span class="connbar-dot" aria-hidden="true" />
         <span>{label()}</span>
       </div>

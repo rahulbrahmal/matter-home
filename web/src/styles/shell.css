@@ -32,6 +32,8 @@
   animation: conn-pulse 1.4s ease-out infinite; }
 .connbar.offline { color: var(--muted); background: var(--surface-2); border-color: var(--line-2); }
 .connbar.offline .connbar-dot { animation: none; box-shadow: none; }
+.connbar.devices { color: var(--warn); background: var(--warn-soft); border-color: rgba(247,185,85,.30); }
+.connbar.devices .connbar-dot { animation: none; box-shadow: none; }
 @keyframes conn-pulse { 70% { box-shadow: 0 0 0 9px rgba(255,122,66,0); } }
 
 /* toasts (above the chip rail + safe area) */

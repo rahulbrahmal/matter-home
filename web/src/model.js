@@ -230,6 +230,9 @@ export function roomRestore(room) {
   runUndoable(`${room.name} on`, pick.flatMap((u) => u.actions(true)), snapUnits(pick));
 }
 
+// devices the gateway has flagged unreachable (peer-unreachable); drives the offline banner
+export const offlineCount = () => Object.values(state.byId).filter((d) => !d.hidden && d.state?.online === false).length;
+
 /* ---------------- home status strip ---------------- */
 export function homeStats() {
   const rs = rooms();
