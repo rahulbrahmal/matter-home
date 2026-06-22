@@ -5,7 +5,7 @@ import { readFile, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, extname } from 'node:path';
 import { MatterClient } from './matter-client.mjs';
-import { makeStore, ingestNode, applyAttr, buildDevices, deviceState, deviceForEndpoint } from './model.mjs';
+import { makeStore, ingestNode, applyAttr, setAvailable, buildDevices, deviceState, deviceForEndpoint } from './model.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MS_URL = process.env.MS_URL || 'ws://localhost:5580/ws';
@@ -52,12 +52,25 @@ const broadcast = (event, data) => { const f = `event: ${event}\ndata: ${JSON.st
 const pushDevice = (d) => broadcast('delta', withOverrides(d));
 const pushSnapshot = () => broadcast('snapshot', snapshot());
 
+// Reachability: matter-server keeps reporting a node as `available` while it silently retries an
+// unreachable peer, so commands abort but state still looks live. Treat a command abort as proof the
+// node is offline; any later attribute push (subscription resumed) is proof it's back. Flips broadcast
+// deltas so the SPA can show "Offline" instead of failing silently.
+function markNodeReachability(nodeId, available) {
+  const n = store.nodes.get(nodeId);
+  if (!n || (n.available !== false) === available) return; // unknown node or no change
+  setAvailable(store, nodeId, available);
+  for (const d of devices.filter((x) => x.nodeId === nodeId)) pushDevice(d);
+}
+const UNREACHABLE_RE = /unreachable|aborted|EHOSTUNREACH|timeout|no address known/i;
+
 // ---- matter-server connection (+ reconnect) ----
 let client;
 async function connectMatter() {
   client = new MatterClient(MS_URL);
   client.on('attribute_updated', (data) => {
     const [node_id, path] = data; applyAttr(store, node_id, path, data[2]);
+    markNodeReachability(node_id, true); // a live attribute push proves the peer is reachable again
     const d = deviceForEndpoint(devices, node_id, path.split('/')[0]);
     if (d) pushDevice(d); // else: not a surfaced control attribute — ignore (avoids full re-render churn)
   });
@@ -88,6 +101,14 @@ async function refreshAll() {
 async function runCommand(c) {
   const d = devices.find((x) => x.id === c.id); if (!d) throw new Error('unknown device ' + c.id);
   const N = d.nodeId;
+  try {
+    return await dispatchCommand(c, d, N);
+  } catch (e) {
+    if (UNREACHABLE_RE.test(e?.message || '')) markNodeReachability(N, false); // surface "Offline" to the SPA
+    throw e; // still report the failure so the client toasts
+  }
+}
+function dispatchCommand(c, d, N) {
   switch (c.kind) {
     case 'onOff': return client.deviceCommand(N, Number(c.ep), 6, c.on ? 'on' : 'off');
     case 'level': return client.deviceCommand(N, d.caps.level, 8, 'moveToLevelWithOnOff', { level: Math.max(1, Math.round((c.value / 100) * 254)), transitionTime: 2, optionsMask: 0, optionsOverride: 0 });

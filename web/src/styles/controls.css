@@ -33,7 +33,7 @@
 .tile:active { transform: scale(.97); }
 .tile.on { border-color: transparent; color: var(--accent-ink); box-shadow: 0 10px 26px -10px var(--accent-glow); }
 .tile.on::before { opacity: 1; }
-.tile.unreachable { opacity: .42; }
+.tile.unreachable, .chip.unreachable { opacity: .42; }
 .tile-ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3);
   color: var(--muted); flex: 0 0 auto; transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease); }
 .tile.on .tile-ico, .ctile.on .tile-ico { background: rgba(26,13,5,.16); color: inherit; }

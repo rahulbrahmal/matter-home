@@ -48,6 +48,7 @@ function mkUnit(d, eps, name) {
     key: `${d.id}:${eps.join('+')}`, id: d.id, ids, name, room: d.room,
     role: roleOf(name), dimmable: !!d.caps?.level, hidden: !!d.hidden,
     on: () => ids.some((t) => epOn(t.id, t.ep)),                 // fused state = OR
+    online: () => view(d.id)?.state.online !== false,            // false only when the gateway flags the node offline
     pending: () => ids.some((t) => pendingVisible(t.id)),
     level: () => view(d.id)?.state.brightness,
     watts: () => view(d.id)?.state.power,
