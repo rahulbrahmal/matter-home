@@ -230,12 +230,14 @@ export function roomRestore(room) {
   runUndoable(`${room.name} on`, pick.flatMap((u) => u.actions(true)), snapUnits(pick));
 }
 
-// devices the gateway has flagged unreachable (peer-unreachable); drives the offline banner
-export const offlineDevices = () => Object.values(state.byId)
-  .filter((d) => !d.hidden && d.state?.online === false)
-  .map((d) => ({ id: d.id, name: d.name, room: d.room || 'Unassigned' }))
+// offline LIGHT circuits the gateway has flagged unreachable (peer-unreachable); drives the offline
+// banner. Scoped to LIGHT_ROLES — the same definition the room cards count — so AC / AC-power / fans /
+// sensors / appliances on an unreachable node don't show up here.
+export const offlineLights = () => allUnits()
+  .filter((u) => LIGHT_ROLES.includes(u.role) && !u.hidden && u.online?.() === false)
+  .map((u) => ({ id: u.key, name: u.name, room: u.room || 'Unassigned' }))
   .sort((a, b) => a.room.localeCompare(b.room) || (a.name || '').localeCompare(b.name || ''));
-export const offlineCount = () => offlineDevices().length;
+export const offlineCount = () => offlineLights().length;
 
 /* ---------------- home status strip ---------------- */
 export function homeStats() {
