@@ -2,8 +2,9 @@
 // route switch (#/ Home, #/room/<id> pager) → SheetHost → Toasts → connection strip.
 // All grouping logic lives in model.js; all controls in ui/ + views/.
 import { onMount, createSignal, createMemo, Show, For } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 import { state, connect, login, auth, toasts, saveDevice, logout, connBar } from './store.js';
-import { rooms, needsSetup, homeStats, offlineCount } from './model.js';
+import { rooms, needsSetup, homeStats, offlineCount, offlineDevices } from './model.js';
 import { route, openSheet } from './router.js';
 import Home from './views/Home.jsx';
 import Rooms from './views/Rooms.jsx';
@@ -31,22 +32,50 @@ function Login() {
   );
 }
 
+function OfflineDevicesBody() {
+  const groups = createMemo(() => {
+    const by = {};
+    for (const d of offlineDevices()) (by[d.room] ??= []).push(d);
+    return Object.keys(by).sort().map((room) => ({ room, devices: by[room] }));
+  });
+  return (<>
+    <div class="sheet-head"><span class="c-ico"><Icon name="bolt" size={24} /></span>
+      <div style={{ flex: 1, 'min-width': 0 }}><div class="sheet-title">Offline devices</div>
+        <div class="c-sub num">{offlineCount()} unreachable</div></div></div>
+    <div class="sheet-body">
+      <p class="muted">These devices aren’t responding to commands. They’ll reconnect automatically once they’re reachable again.</p>
+      <For each={groups()}>{(g) => (
+        <div class="block"><label>{g.room}</label>
+          <div class="gang-rows">
+            <For each={g.devices}>{(d) => (
+              <div class="gang-row"><span class="gr-name">{d.name}</span><span class="c-sub">Offline</span></div>)}</For>
+          </div></div>)}</For>
+      <Show when={!offlineCount()}><p class="muted">Everything is back online.</p></Show>
+    </div>
+  </>);
+}
+
 function ConnectionStrip() {
   // gateway connection (reconnecting/offline) takes precedence; when it's live but the controller
-  // can't reach some devices, show a distinct "devices offline" banner instead.
+  // can't reach some devices, show a distinct "devices offline" banner — tappable to list them.
   const offline = () => (connBar().show ? 0 : offlineCount());
   const show = () => connBar().show || offline() > 0;
   const kind = () => connBar().show ? connBar().kind : 'devices';
+  const tappable = () => kind() === 'devices' && show();
   const label = () => connBar().show
     ? (connBar().kind === 'offline' ? 'Offline — retrying' : 'Reconnecting…')
     : (offline() === 1 ? '1 device offline' : `${offline()} devices offline`);
   return (
     <div class="connbar-slot" aria-hidden={!show()}>
-      <div class="connbar" classList={{ show: show(), offline: kind() === 'offline', devices: kind() === 'devices' }}
-        role={show() ? 'status' : undefined} aria-live={show() ? 'polite' : undefined} aria-atomic="true">
+      <Dynamic component={tappable() ? 'button' : 'div'} class="connbar"
+        classList={{ show: show(), offline: kind() === 'offline', devices: kind() === 'devices', tappable: tappable() }}
+        role={tappable() ? undefined : (show() ? 'status' : undefined)}
+        aria-live={show() ? 'polite' : undefined} aria-atomic="true"
+        onClick={tappable() ? () => openSheet({ body: () => <OfflineDevicesBody /> }) : undefined}>
         <span class="connbar-dot" aria-hidden="true" />
         <span>{label()}</span>
-      </div>
+        <Show when={tappable()}><Icon name="chevron-right" size={14} class="connbar-chev" /></Show>
+      </Dynamic>
     </div>
   );
 }

@@ -231,7 +231,11 @@ export function roomRestore(room) {
 }
 
 // devices the gateway has flagged unreachable (peer-unreachable); drives the offline banner
-export const offlineCount = () => Object.values(state.byId).filter((d) => !d.hidden && d.state?.online === false).length;
+export const offlineDevices = () => Object.values(state.byId)
+  .filter((d) => !d.hidden && d.state?.online === false)
+  .map((d) => ({ id: d.id, name: d.name, room: d.room || 'Unassigned' }))
+  .sort((a, b) => a.room.localeCompare(b.room) || (a.name || '').localeCompare(b.name || ''));
+export const offlineCount = () => offlineDevices().length;
 
 /* ---------------- home status strip ---------------- */
 export function homeStats() {

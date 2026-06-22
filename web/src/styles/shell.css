@@ -34,6 +34,9 @@
 .connbar.offline .connbar-dot { animation: none; box-shadow: none; }
 .connbar.devices { color: var(--warn); background: var(--warn-soft); border-color: rgba(247,185,85,.30); }
 .connbar.devices .connbar-dot { animation: none; box-shadow: none; }
+.connbar.tappable { pointer-events: auto; cursor: pointer; font-family: inherit; -webkit-appearance: none; appearance: none; }
+.connbar.tappable:active { transform: scale(.98); }
+.connbar-chev { opacity: .8; margin-left: -2px; }
 @keyframes conn-pulse { 70% { box-shadow: 0 0 0 9px rgba(255,122,66,0); } }
 
 /* toasts (above the chip rail + safe area) */
