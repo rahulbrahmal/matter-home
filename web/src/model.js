@@ -125,6 +125,7 @@ export function buildRooms(devices) {
     const hidden = us.filter((u) => u.hidden || HIDDEN_ROLES.includes(u.role));
     const live = us.filter((u) => !hidden.includes(u));
     const fans = live.filter((u) => u.role === 'fan');
+    const isZone = ZONES.some((z) => z.name === name); // multi-sub-room page (Living Area)
     const hero = live.find((u) => HEROES.has(u.key)) || null;
     const bathUnits = name === 'Guest Room' ? [] // Guest Room keeps its bathroom in the main list (§1.3)
       : live.filter((u) => ['bathroom', 'exhaust'].includes(u.role)).sort(byRank);
@@ -132,16 +133,21 @@ export function buildRooms(devices) {
     const rest = live.filter((u) => u !== hero && !fans.includes(u) && !bathUnits.includes(u));
     const secs = {};
     for (const u of rest) (secs[u.room] ??= []).push(u);
-    const lightSections = Object.keys(secs).sort(ord(SECTION_ORDER)).map((r) => ({ room: r, units: secs[r].sort(byRank) }));
+    // zone pages have per-sub-room sections, so fans dock under the room they live in (Lounge / TV Area);
+    // single-room pages keep one dedicated Fans section (a lone fan under a "Lights" header would mislabel it)
+    const sectionFans = {};
+    if (isZone) for (const f of fans) { (sectionFans[f.room] ??= []).push(f); secs[f.room] ??= []; }
+    const lightSections = Object.keys(secs).sort(ord(SECTION_ORDER)).map((r) => ({ room: r, units: secs[r].sort(byRank), fans: (sectionFans[r] || []).sort(byRank) }));
+    const roomFans = isZone ? [] : fans;
     const lights = [hero, ...rest, ...bathUnits].filter((u) => u && LIGHT_ROLES.includes(u.role)); // master/off scope: no fans/exhausts/hidden
     const climate = climates.find((c) => c.room === name) || null;
     return {
-      id: slug(name), name, climate, hero, lightSections, bathroom, fans, hidden, lights,
+      id: slug(name), name, climate, hero, lightSections, bathroom, fans: roomFans, hidden, lights,
       floor: devices.find((d) => d.room && (zoneOf[d.room] || d.room) === name && d.floor)?.floor || null,
       coverGroups: groupCovers(coversBy[name] || []),
       counts: { lights: lights.length, on: () => lights.filter((u) => u.on()).length },
     };
-  }).filter((r) => r.lights.length || r.climate || r.coverGroups.length || r.fans.length || r.hidden.length);
+  }).filter((r) => r.lights.length || r.climate || r.coverGroups.length || r.fans.length || r.lightSections.length || r.hidden.length);
 }
 
 /* ---------------- module-scoped memos ---------------- */

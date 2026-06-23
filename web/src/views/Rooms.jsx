@@ -30,9 +30,12 @@ function Page(props) {
       <Show when={r.coverGroups.length}><WindowsTile groups={r.coverGroups} room={r.name} i={0} /></Show>
       <Show when={r.hero}><DimmerTile unit={r.hero} i={0} /></Show>
       <For each={r.lightSections}>{(s) => (<>
-        <SectionHead title={multi ? s.room : 'Lights'} count={s.units.length}
+        <SectionHead title={multi ? s.room : 'Lights'} count={s.units.length || null}
           onOff={s.units.some((u) => u.on()) ? () => secOff(`${multi ? s.room : r.name} lights off`, r, s.units) : null} />
-        <div class="grid2"><For each={s.units}>{(u, i) => <Tile unit={u} i={i()} name={short(u)} />}</For></div>
+        <div class="grid2">
+          <For each={s.units}>{(u, i) => <Tile unit={u} i={i()} name={short(u)} />}</For>
+          <For each={s.fans}>{(u, i) => <FanChip unit={u} i={i()} name={short(u)} />}</For>
+        </div>
       </>)}</For>
       <Show when={r.fans.length}>
         <SectionHead title={r.fans.length > 1 ? 'Fans' : 'Fan'} />
