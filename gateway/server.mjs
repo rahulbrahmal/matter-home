@@ -65,8 +65,16 @@ function markNodeReachability(nodeId, available) {
 const UNREACHABLE_RE = /unreachable|aborted|EHOSTUNREACH|timeout|no address known/i;
 
 // ---- matter-server connection (+ reconnect) ----
-let client;
+let client, reconnectTimer = null, booting = false;
+// One retry in flight at a time: a single failed connect can emit 'disconnected' (error + close)
+// AND reject boot()'s connectMatter() — without this guard each attempt fans out into 2-3 more,
+// spawning MatterClients exponentially until the heap is exhausted (OOM).
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectTimer = setTimeout(() => { reconnectTimer = null; boot(); }, 4000);
+}
 async function connectMatter() {
+  if (client) { try { client.close(); } catch {} client.removeAllListeners(); } // drop the prior socket + its listeners
   client = new MatterClient(MS_URL);
   client.on('attribute_updated', (data) => {
     const [node_id, path] = data; applyAttr(store, node_id, path, data[2]);
@@ -84,7 +92,7 @@ async function connectMatter() {
       for (const d of devices.filter((x) => x.nodeId === node.node_id)) pushDevice(d);
     } catch {}
   });
-  client.on('disconnected', () => { broadcast('controller', { connected: false }); setTimeout(boot, 4000); });
+  client.on('disconnected', () => { broadcast('controller', { connected: false }); scheduleReconnect(); });
   await client.connect();
   await client.startListening();
   await refreshAll();
@@ -186,6 +194,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 // ---- boot ----
-async function boot() { try { await connectMatter(); } catch (e) { console.error('matter connect failed, retrying:', e.message); setTimeout(boot, 4000); } }
+async function boot() {
+  if (booting) return; // collapse overlapping boots; the in-flight one resolves or reschedules
+  booting = true;
+  try { await connectMatter(); }
+  catch (e) { console.error('matter connect failed, retrying:', e.message); scheduleReconnect(); }
+  finally { booting = false; }
+}
 server.listen(PORT, () => console.log(`Gateway http://localhost:${PORT}`));
 boot().then(() => console.log(`Connected; ${devices.length} devices, ${home.floors.length} floors, ${home.areas.length} areas`));
