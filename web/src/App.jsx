@@ -4,7 +4,7 @@
 import { onMount, createSignal, createMemo, Show, For } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { state, connect, login, auth, toasts, saveDevice, logout, connBar } from './store.js';
-import { rooms, needsSetup, homeStats, offlineCount, offlineLights } from './model.js';
+import { rooms, needsSetup, homeStats, offlineCount, offlineLights, unhideUnit } from './model.js';
 import { route, openSheet } from './router.js';
 import Home from './views/Home.jsx';
 import Rooms from './views/Rooms.jsx';
@@ -92,7 +92,7 @@ function SettingsBody() {
         <div class="gang-rows" style={{ 'margin-top': '14px' }}>
           <For each={hidden()}>{({ u, room }) => (
             <div class="gang-row"><span class="gr-name">{u.name}<span class="c-sub">{room}</span></span>
-              <Show when={u.hidden}><button class="ghost" onClick={() => saveDevice(u.id, { hidden: false })}>Unhide</button></Show>
+              <Show when={u.hidden}><button class="ghost" onClick={() => unhideUnit(u)}>Unhide</button></Show>
               <Toggle checked={u.on()} pending={u.pending()} label={u.name} onChange={() => u.toggle()} /></div>)}</For>
           <Show when={!hidden().length}><p class="muted">No hidden circuits.</p></Show>
         </div></details>

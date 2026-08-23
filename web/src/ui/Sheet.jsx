@@ -3,7 +3,7 @@
 // focus trap + Escape + scroll lock, payload-KEYED bodies (fixes the stale-props bug).
 import { Show, For, createSignal, createEffect, onCleanup } from 'solid-js';
 import { state, view, cmd, pendingVisible, runScene, acSetMode, togglePower, saveDevice, saveGang } from '../store.js';
-import { acPowered } from '../model.js';
+import { acPowered, hideUnit } from '../model.js';
 import { sheet, closeSheet } from '../router.js';
 import { Icon, Toggle, throttle, fmtW, Num } from './bits.jsx';
 import { modeName } from './ClimateTile.jsx';
@@ -136,7 +136,7 @@ export function LightDetail(props) {
         <div class="row" style={{ 'justify-content': 'space-between', 'margin-top': '14px' }}>
           <button class="ghost" classList={{ active: dev()?.favorite }} onClick={() => saveDevice(u.id, { favorite: !dev().favorite })}>
             <Icon name="star" size={14} /> {dev()?.favorite ? 'Favorited' : 'Favorite'}</button>
-          <button class="ghost" onClick={() => { saveDevice(u.id, { hidden: true }); closeSheet(); }}>Hide</button></div>
+          <button class="ghost" onClick={() => { hideUnit(u); closeSheet(); }}>Hide</button></div>
       </details>
     </div>
   </>);

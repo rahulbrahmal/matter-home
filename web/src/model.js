@@ -4,7 +4,7 @@
 //  - climate groups: AC + its AC-Power switch(es) + hub-bound sensor (+ zone powers for Living Area)
 //  - rooms: curated Room[] incl. the Living Area zone and the synthetic Outdoor room
 import { createRoot, createMemo } from 'solid-js';
-import { state, view, cmd, pendingVisible, runScene, setToasts } from './store.js';
+import { state, view, cmd, pendingVisible, runScene, setToasts, saveDevice } from './store.js';
 
 export const ZONES = [{ name: 'Living Area', rooms: ['Kitchen & Dining', 'Lounge', 'TV Area'] }];
 const isLight = (t) => ['light', 'switch', 'outlet'].includes(t);
@@ -46,7 +46,10 @@ function mkUnit(d, eps, name) {
   const ids = eps.map((ep) => ({ id: d.id, ep }));
   const u = {
     key: `${d.id}:${eps.join('+')}`, id: d.id, ids, name, room: d.room,
-    role: roleOf(name), dimmable: !!d.caps?.level, hidden: !!d.hidden,
+    // hidden is per-circuit (hiddenEps) so hiding a relay gang never hides its sibling gangs;
+    // device-level hidden remains for single-circuit devices and legacy config entries
+    role: roleOf(name), dimmable: !!d.caps?.level,
+    hidden: !!d.hidden || eps.every((ep) => (state.config.devices[d.id]?.hiddenEps || []).includes(ep)),
     on: () => ids.some((t) => epOn(t.id, t.ep)),                 // fused state = OR
     online: () => view(d.id)?.state.online !== false,            // false only when the gateway flags the node offline
     pending: () => ids.some((t) => pendingVisible(t.id)),
@@ -69,6 +72,23 @@ export function explodeUnits(devices) {
     for (const [n, list] of byName) units.push(mkUnit(d, list, n));
   }
   return units;
+}
+
+/* ---------------- hide/unhide: circuit-scoped ----------------
+   Hiding fell through to device-level `hidden:true`, which also removed every sibling gang on the
+   same wall switch (e.g. hiding the Dry Kitchen "Relay" gang took the "Main Light" with it). Hide
+   now records just the unit's endpoints; device-level hidden stays only for single-circuit devices. */
+export function hideUnit(u) {
+  const eps = u.ids.map((t) => t.ep);
+  const multi = (state.byId[u.id]?.caps?.onOff || []).length > eps.length;
+  if (!multi) return saveDevice(u.id, { hidden: true });
+  const cur = state.config.devices[u.id]?.hiddenEps || [];
+  saveDevice(u.id, { hiddenEps: [...new Set([...cur, ...eps])] });
+}
+export function unhideUnit(u) {
+  const eps = new Set(u.ids.map((t) => t.ep));
+  const cur = state.config.devices[u.id]?.hiddenEps || [];
+  saveDevice(u.id, { hidden: false, hiddenEps: cur.filter((ep) => !eps.has(ep)) });
 }
 
 /* ---------------- covers: strip trailing numbers → Curtains/Shades groups, pct = mean ---------------- */
