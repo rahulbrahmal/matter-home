@@ -16,7 +16,9 @@
 @media (min-width: 1200px) { .grid2 { gap: 12px; } }
 
 /* Rooms: full-screen horizontal scroll-snap pager (native momentum — no JS animation, §3) */
-.rooms { position: fixed; inset: var(--connbar-slot-h) 0 0; height: calc(100vh - var(--connbar-slot-h)); height: calc(100dvh - var(--connbar-slot-h)); display: flex; flex-direction: column; z-index: 10; background: var(--bg); }
+/* sized purely by edge-pinning (top + bottom: 0), like the home dock: iOS standalone
+   under-reports 100vh/100dvh by the top safe-area, which shifted the pager up. */
+.rooms { position: fixed; inset: var(--connbar-slot-h) 0 0; display: flex; flex-direction: column; z-index: 10; background: var(--bg); }
 .pager { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x pan-y; }
 .page { flex: 0 0 100%; min-width: 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow-y: auto;
