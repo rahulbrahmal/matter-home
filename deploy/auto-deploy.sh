@@ -1,6 +1,10 @@
 #!/bin/zsh
+# LEGACY / UNUSED. Production deploys now run via .github/workflows/deploy-server.yml
+# (push to main -> GitHub runner joins ZeroTier -> SSHes into kl_2_server -> pull/build/restart).
+# This poll-based deployer is kept for reference only and is not wired to any launchd agent.
+#
 # Auto-deploy: poll origin/main; on new commits -> pull, build the SPA, restart the gateway if its code changed.
-# Run by launchd (com.matterhome.deploy) every 2 minutes on the host Mac. Logs to ~/Library/Logs/matterhome/deploy.log.
+# Logs to ~/Library/Logs/matterhome/deploy.log.
 set -euo pipefail
 export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
 REPO="${REPO:-$HOME/Developer/matter-home}"
