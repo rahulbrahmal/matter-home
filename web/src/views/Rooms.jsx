@@ -6,7 +6,7 @@ import { rooms, roomOff, runUndoable, snapUnits } from '../model.js';
 import { route, go } from '../router.js';
 import { Tile, DimmerTile, FanChip } from '../ui/Tile.jsx';
 import { ClimateCard } from '../ui/ClimateTile.jsx';
-import { WindowsTile } from '../ui/WindowsTile.jsx';
+import { CoverTile } from '../ui/CoverTile.jsx';
 import { SectionHead, Skeletons } from '../ui/bits.jsx';
 import RoomRail from '../ui/RoomRail.jsx';
 
@@ -27,7 +27,7 @@ function Page(props) {
     <section class="page" data-room={r.id} aria-label={r.name}>
       <header class="page-head"><h2>{r.name}</h2><Show when={r.floor}><span class="muted">{r.floor}</span></Show></header>
       <Show when={r.climate}><ClimateCard group={r.climate} i={0} /></Show>
-      <Show when={r.coverGroups.length}><WindowsTile groups={r.coverGroups} room={r.name} i={0} /></Show>
+      <For each={r.coverGroups}>{(g, i) => <CoverTile group={g} room={r.name} i={i()} />}</For>
       <Show when={r.hero}><DimmerTile unit={r.hero} i={0} /></Show>
       <For each={r.lightSections}>{(s) => (<>
         <SectionHead title={multi ? s.room : 'Lights'} count={s.units.length || null}

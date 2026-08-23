@@ -74,7 +74,7 @@ export function SheetHost() {
   return (
     <Sheet open={sheet()} onClose={closeSheet}>{(p) =>
       p.t === 'climate' ? <ClimateDetail group={p.group} />
-      : p.t === 'windows' ? <WindowsDetail groups={p.groups} room={p.room} />
+      : p.t === 'covers' ? <CoverDetail group={p.group} room={p.room} />
       : p.t === 'light' ? <LightDetail unit={p.unit} />
       : p.body ? p.body(p) : null
     }</Sheet>
@@ -207,30 +207,24 @@ function MotorName(props) {
   );
 }
 
-export function WindowsDetail(props) {
-  // read groups live from the room model (falling back to the open-time payload) so renaming a
-  // motor regroups the rails in place — e.g. "Curtain 2" → "Blackout 1" splits off a Blackouts rail
-  const groups = () => rooms().find((r) => r.name === props.room)?.coverGroups || props.groups;
-  const motors = () => groups().reduce((n, g) => n + g.members.length, 0);
-  const all = (a, v) => runScene(groups().flatMap((g) => g.actions(a, v))); // one batched scene for 8 motors
+export function CoverDetail(props) {
+  // read the group live from the room model (falling back to the open-time payload) so renaming a
+  // motor regroups in place — e.g. "Sheer 3" → "Blackout 1" moves it to the Blackouts tile
+  const g = () => rooms().find((r) => r.name === props.room)?.coverGroups.find((x) => x.name === props.group.name) || props.group;
   return (<>
-    <Head icon="blind" title="Windows" sub={[props.room, `${motors()} motors`].filter(Boolean).join(' · ')} />
+    <Head icon="blind" title={g().name} sub={[props.room, `${g().members.length} motors`].filter(Boolean).join(' · ')} />
     <div class="sheet-body">
-      <div class="block"><label>All windows</label>
-        <div class="seg"><button onClick={() => all('open')}>Open</button><button onClick={() => all('stop')}>Stop</button><button onClick={() => all('close')}>Close</button></div></div>
-      <For each={groups()}>{(g) => (
-        <div class="block">
-          <label>{g.name} · <span class="num">{g.pct() ?? '–'}%</span></label>
-          <input type="range" min="0" max="100" value={g.pct() ?? 0} aria-label={`${g.name} position`}
-            onChange={(e) => runScene(g.actions('set', +e.currentTarget.value))} />
-          <div class="seg" style={{ 'margin-top': '10px' }}>
-            <button onClick={() => runScene(g.actions('open'))}>Open</button>
-            <button onClick={() => runScene(g.actions('stop'))}>Stop</button>
-            <button onClick={() => runScene(g.actions('close'))}>Close</button></div>
-          <details class="motor-rows"><summary>Each motor</summary>
-            <For each={g.members}>{(m) => <MotorRow m={m} />}</For></details>
-        </div>
-      )}</For>
+      <div class="block">
+        <label>Position · <span class="num">{g().pct() ?? '–'}%</span></label>
+        <input type="range" min="0" max="100" value={g().pct() ?? 0} aria-label={`${g().name} position`}
+          onChange={(e) => runScene(g().actions('set', +e.currentTarget.value))} />
+        <div class="seg" style={{ 'margin-top': '10px' }}>
+          <button onClick={() => runScene(g().actions('open'))}>Open</button>
+          <button onClick={() => runScene(g().actions('stop'))}>Stop</button>
+          <button onClick={() => runScene(g().actions('close'))}>Close</button></div>
+      </div>
+      <div class="block"><label>Each motor</label>
+        <For each={g().members}>{(m) => <MotorRow m={m} />}</For></div>
     </div>
   </>);
 }
