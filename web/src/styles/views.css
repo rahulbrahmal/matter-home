@@ -16,13 +16,15 @@
 @media (min-width: 1200px) { .grid2 { gap: 12px; } }
 
 /* Rooms: full-screen horizontal scroll-snap pager (native momentum — no JS animation, §3) */
-/* sized purely by edge-pinning (top + bottom: 0), like the home dock: iOS standalone
-   under-reports 100vh/100dvh by the top safe-area, which shifted the pager up. */
-.rooms { position: fixed; inset: var(--connbar-slot-h) 0 0; display: flex; flex-direction: column; z-index: 10; background: var(--bg); }
+/* sized purely by edge-pinning (inset: 0), like the home dock: iOS standalone under-reports
+   100vh/100dvh by the top safe-area, which shifted the pager up. Spans the full screen (no bg,
+   so the ambient glow shows) with the connbar slot folded into each page's top padding — content
+   scrolls under the status bar exactly like the home view instead of clipping at a hard band. */
+.rooms { position: fixed; inset: 0; display: flex; flex-direction: column; z-index: 10; }
 .pager { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain; scrollbar-width: none; touch-action: pan-x pan-y; }
 .page { flex: 0 0 100%; min-width: 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow-y: auto;
-  padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
+  padding: calc(var(--connbar-slot-h) + 6px) max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
 .page-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 2px 14px; }
 .page-head h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
 .page-foot { display: flex; justify-content: flex-end; padding: 10px 0 30px; }
@@ -43,7 +45,7 @@
 @media (min-width: 768px) {
   .chip-rail.home-dock { display: none; }
   .rooms { flex-direction: row; }
-  .page { padding: 24px max(24px, calc((100% - 640px) / 2)) 40px; }
+  .page { padding: calc(var(--connbar-slot-h) + 8px) max(24px, calc((100% - 640px) / 2)) 40px; }
   .chip-rail { order: -1; flex-direction: column; align-items: stretch; width: 240px; overflow-y: auto; overflow-x: hidden;
     border-top: none; border-right: 1px solid var(--line); padding: 26px 14px; gap: 6px;
     background: linear-gradient(180deg, var(--bg-soft), var(--bg)); }
@@ -52,5 +54,5 @@
 }
 @media (min-width: 1200px) {
   .chip-rail { width: 256px; }
-  .page { padding: 32px max(32px, calc((100% - 720px) / 2)) 48px; }
+  .page { padding: calc(var(--connbar-slot-h) + 12px) max(32px, calc((100% - 720px) / 2)) 48px; }
 }
