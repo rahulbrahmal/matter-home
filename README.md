@@ -12,7 +12,7 @@ Matter devices ──▶ matter-server (controller, ws://…:5580)
 
 - **gateway/** — dependency-free Node ESM. Connects to matter-server, builds an enriched device model (rooms, floors, gangs, climate consolidation), streams deltas over SSE, takes commands, persists customizations, and serves the built SPA. Token-authenticated.
 - **web/** — SolidJS + Vite. Login screen → dashboard. Configurable backend URL; sends the password as a bearer token.
-- **tools/** — operational scripts (commissioning via multi-admin, name restore from Home Assistant, inventory/extraction). Run with `node tools/<script>.mjs`.
+- **tools/** — operational scripts, run with `node tools/<script>.mjs`: `extract-rich.mjs` (deep device extraction from matter-server), `name-from-live.mjs` / `friendly-names.mjs` (generate friendly device names into `device-map.json`).
 
 ## Auth (one shared secret)
 
@@ -37,7 +37,7 @@ Data files (`tools/device-map.json`, `tools/home.json`, `gateway/config.json`) h
 
 - **CI** (`.github/workflows/ci.yml`) — syntax-checks the gateway and builds the SPA on every push.
 - **Pages** (`.github/workflows/deploy-pages.yml`) — builds the SPA and deploys it to GitHub Pages. The hosted app is a password gate; it connects to whatever gateway URL you enter.
-  - ⚠️ The Pages site is HTTPS; a LAN gateway is HTTP, so browsers block that as mixed content. In-house, use the **gateway-served** URL (`http://<host>:8788`). The hosted copy becomes fully usable once the gateway is reachable over HTTPS (future: tunnel / reverse proxy).
+- **Production (host Mac)** — four launchd agents (`com.matterhome.*`): `matterserver` (matter.js controller on :5580), `gateway` (serves API + built SPA on :8788), `tunnel` (Cloudflare tunnel exposing the gateway over HTTPS, so the PWA works away from home), and `deploy` (runs `deploy/auto-deploy.sh` every 2 minutes: fast-forward pull of `origin/main`, rebuild the SPA if `web/` changed, restart the gateway if `gateway/` changed). Pushing to `main` is the deploy.
 
 ## Dev
 

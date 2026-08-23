@@ -1,14 +1,10 @@
 node_modules/
 dist/
 .env
-.token
 *.log
 *.tgz
 .DS_Store
 # private home/runtime data — never committed
 tools/device-map.json
-tools/device-map.csv
 tools/home.json
-tools/inventory.json
-tools/inventory.md
 gateway/config.json
