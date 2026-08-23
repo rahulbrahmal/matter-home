@@ -91,12 +91,18 @@ export function unhideUnit(u) {
   saveDevice(u.id, { hidden: false, hiddenEps: cur.filter((ep) => !eps.has(ep)) });
 }
 
-/* ---------------- covers: strip trailing numbers → Curtains/Shades groups, pct = mean ---------------- */
+/* ---------------- covers: strip trailing numbers → Curtains/Shades groups, pct = mean ----------------
+   Rooms with two rails per window (e.g. Master Bedroom sheer + blackout) split into one group per
+   rail purely by name — "Sheer 1..n" / "Blackout 1..n" — so each group spans every side of the room
+   while the Windows tile tap still drives all groups as one synced open/close. */
+const COVER_GROUP_ORDER = ['Sheers', 'Curtains', 'Shades', 'Blinds', 'Blackouts'];
 export function groupCovers(covers) {
   const by = {};
   for (const c of covers) (by[(c.name || 'Cover').replace(/\s+\d+$/, '')] ??= []).push(c);
-  return Object.keys(by).sort().map((base) => { const members = by[base].sort((a, b) => (a.name || '').localeCompare(b.name || '')); return {
-    name: base.endsWith('s') ? base : base + 's', members,
+  const plural = (b) => (b.endsWith('s') ? b : b + 's');
+  return Object.keys(by).sort((a, b) => ord(COVER_GROUP_ORDER)(plural(a), plural(b)) || a.localeCompare(b))
+    .map((base) => { const members = by[base].sort((a, b) => (a.name || '').localeCompare(b.name || '')); return {
+    name: plural(base), members,
     pct: () => { const ps = members.map((m) => view(m.id)?.state.coverPct).filter((p) => p != null); return ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null; },
     actions: (action, value) => members.map((m) => ({ id: m.id, kind: 'cover', action, value })),
   }; });

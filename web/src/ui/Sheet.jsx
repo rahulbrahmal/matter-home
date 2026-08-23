@@ -3,7 +3,7 @@
 // focus trap + Escape + scroll lock, payload-KEYED bodies (fixes the stale-props bug).
 import { Show, For, createSignal, createEffect, onCleanup } from 'solid-js';
 import { state, view, cmd, pendingVisible, runScene, acSetMode, togglePower, saveDevice, saveGang } from '../store.js';
-import { acPowered, hideUnit } from '../model.js';
+import { acPowered, hideUnit, rooms } from '../model.js';
 import { sheet, closeSheet } from '../router.js';
 import { Icon, Toggle, throttle, fmtW, Num } from './bits.jsx';
 import { modeName } from './ClimateTile.jsx';
@@ -180,27 +180,45 @@ export function ClimateDetail(props) {
 /* ---------------- windows detail: master + group rows + per-motor rows one level deeper ---------------- */
 function MotorRow(props) {
   const pct = () => view(props.m.id)?.state.coverPct;
-  return (
+  const [editing, setEditing] = createSignal(false);
+  return (<>
     <div class="motor-row">
-      <span class="gr-name">{props.m.name} <span class="c-sub num">{pct() ?? '–'}%</span></span>
+      <button class="gr-name" style={{ 'text-align': 'left', cursor: 'pointer' }} aria-expanded={editing()}
+        aria-label={`Rename ${props.m.name}`} onClick={() => setEditing(!editing())}>
+        {props.m.name} <span class="c-sub num">{pct() ?? '–'}%</span></button>
       <div class="cover-ctl">
         <button aria-label={`Open ${props.m.name}`} onClick={() => cmd.cover(props.m.id, 'open')}><Icon name="chevron-up" size={14} /></button>
         <button aria-label={`Stop ${props.m.name}`} onClick={() => cmd.cover(props.m.id, 'stop')}><Icon name="stop" size={14} /></button>
         <button aria-label={`Close ${props.m.name}`} onClick={() => cmd.cover(props.m.id, 'close')}><Icon name="chevron-down" size={14} /></button>
       </div>
     </div>
+    <Show when={editing()}><MotorName m={props.m} /></Show>
+  </>);
+}
+
+function MotorName(props) {
+  const [name, setName] = createSignal(props.m.name);
+  const dirty = () => name().trim() && name().trim() !== props.m.name;
+  return (
+    <div class="row" style={{ 'margin-top': '10px' }}>
+      <input class="text" value={name()} aria-label={`Rename ${props.m.name}`} onInput={(e) => setName(e.currentTarget.value)} />
+      <button class="ghost" disabled={!dirty()} onClick={() => saveDevice(props.m.id, { name: name().trim() })}>Save</button>
+    </div>
   );
 }
 
 export function WindowsDetail(props) {
-  const motors = () => props.groups.reduce((n, g) => n + g.members.length, 0);
-  const all = (a, v) => runScene(props.groups.flatMap((g) => g.actions(a, v))); // one batched scene for 8 motors
+  // read groups live from the room model (falling back to the open-time payload) so renaming a
+  // motor regroups the rails in place — e.g. "Curtain 2" → "Blackout 1" splits off a Blackouts rail
+  const groups = () => rooms().find((r) => r.name === props.room)?.coverGroups || props.groups;
+  const motors = () => groups().reduce((n, g) => n + g.members.length, 0);
+  const all = (a, v) => runScene(groups().flatMap((g) => g.actions(a, v))); // one batched scene for 8 motors
   return (<>
     <Head icon="blind" title="Windows" sub={[props.room, `${motors()} motors`].filter(Boolean).join(' · ')} />
     <div class="sheet-body">
       <div class="block"><label>All windows</label>
         <div class="seg"><button onClick={() => all('open')}>Open</button><button onClick={() => all('stop')}>Stop</button><button onClick={() => all('close')}>Close</button></div></div>
-      <For each={props.groups}>{(g) => (
+      <For each={groups()}>{(g) => (
         <div class="block">
           <label>{g.name} · <span class="num">{g.pct() ?? '–'}%</span></label>
           <input type="range" min="0" max="100" value={g.pct() ?? 0} aria-label={`${g.name} position`}

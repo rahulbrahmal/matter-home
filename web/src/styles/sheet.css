@@ -79,7 +79,8 @@
 /* settings / per-motor disclosures */
 .settings summary, .motor-rows summary { cursor: pointer; color: var(--muted); font-weight: 700; font-size: 13px; padding: 12px 0; }
 .motor-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
-.motor-row .gr-name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
+.motor-row .gr-name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px;
+  background: none; border: none; color: var(--ink); font-family: inherit; padding: 0; }
 .cover-ctl { display: flex; gap: 6px; }
 .cover-ctl button { flex: 1; min-width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-2);
   background: var(--surface-2); color: inherit; cursor: pointer; font-size: 13px; display: grid; place-items: center; }
