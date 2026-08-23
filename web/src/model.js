@@ -143,7 +143,7 @@ export function buildRooms(devices) {
     : (OUTDOOR_ROOMS.includes(u.room) || u.role === 'external') ? 'Outdoor' : zoneOf[u.room] || u.room;
   const byRoom = {}, coversBy = {};
   for (const u of explodeUnits(devices)) { const r = homeOf(u); if (r) (byRoom[r] ??= []).push(u); }
-  for (const c of devices) if (c.type === 'cover' && c.room) (coversBy[zoneOf[c.room] || c.room] ??= []).push(c);
+  for (const c of devices) if (c.type === 'cover' && c.room && !c.hidden) (coversBy[zoneOf[c.room] || c.room] ??= []).push(c);
 
   const names = [...new Set([...Object.keys(byRoom), ...Object.keys(coversBy), ...climates.map((c) => c.room)])].sort(ord(ROOM_ORDER));
   return names.map((name) => {
