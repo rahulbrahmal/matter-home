@@ -37,7 +37,8 @@ Data files (`tools/device-map.json`, `tools/home.json`, `gateway/config.json`) h
 
 - **CI** (`.github/workflows/ci.yml`) — syntax-checks the gateway and builds the SPA on every push.
 - **Pages** (`.github/workflows/deploy-pages.yml`) — builds the SPA and deploys it to GitHub Pages. The hosted app is a password gate; it connects to whatever gateway URL you enter.
-- **Production (host Mac)** — four launchd agents (`com.matterhome.*`): `matterserver` (matter.js controller on :5580), `gateway` (serves API + built SPA on :8788), `tunnel` (Cloudflare tunnel exposing the gateway over HTTPS, so the PWA works away from home), and `deploy` (runs `deploy/auto-deploy.sh` every 2 minutes: fast-forward pull of `origin/main`, rebuild the SPA if `web/` changed, restart the gateway if `gateway/` changed). Pushing to `main` is the deploy.
+- **Server deploy** (`.github/workflows/deploy-server.yml`) — on push to `main` (paths under `gateway/`, `web/`, `tools/`, `deploy/`) or manual dispatch, a GitHub-hosted runner joins the ZeroTier network, SSHes into the production server, fast-forwards its checkout, rebuilds the SPA if `web/` changed, restarts the gateway if `gateway/` changed, verifies `/api/health`, then leaves the ZeroTier network. Pushing to `main` is the deploy. Requires repo secrets `ZEROTIER_NETWORK_ID`, `ZEROTIER_CENTRAL_TOKEN`, `ZEROTIER_HOST_IP`, `REMOTE_USER`, `REMOTE_PASSWORD`.
+- **Production (always-on Mac, `kl_2_server`)** — three launchd agents (`com.matterhome.*`): `matterserver` (matter.js controller on :5580, bound to the LAN interface), `gateway` (serves API + built SPA on :8788), and `tunnel` (Cloudflare tunnel exposing the gateway at `home.sigma-rahul.com` over HTTPS, so the PWA works away from home). Deploys arrive via the `deploy-server` workflow above — the old poll-based `deploy/auto-deploy.sh` launchd agent is not used on this host.
 
 ## Dev
 
