@@ -89,14 +89,32 @@ jobs:
 
           # health check
           TOKEN=$(grep -oE 'GW_TOKEN=.*' gateway/.env | cut -d= -f2)
+          HEALTHY=0
           for i in $(seq 1 15); do
             if curl -fs -H "Authorization: Bearer $TOKEN" http://localhost:8788/api/health; then
-              echo; echo "health OK"; exit 0
+              echo; echo "health OK"; HEALTHY=1; break
             fi
             sleep 2
           done
-          echo "gateway health check failed" >&2
-          exit 1
+          if [ "$HEALTHY" != 1 ]; then
+            echo "gateway health check failed" >&2
+            exit 1
+          fi
+
+          # tunnel health: if the public URL isn't answering, kickstart cloudflared
+          if ! curl -fs -m 10 -o /dev/null https://home.sigma-rahul.com/; then
+            echo "public URL down — restarting tunnel"
+            launchctl kickstart -k "gui/$(id -u)/com.matterhome.tunnel"
+            for i in $(seq 1 15); do
+              if curl -fs -m 10 -o /dev/null https://home.sigma-rahul.com/; then
+                echo "tunnel OK"; exit 0
+              fi
+              sleep 2
+            done
+            echo "tunnel still down after restart" >&2
+            exit 1
+          fi
+          echo "tunnel OK"
           REMOTE
 
       - name: Leave ZeroTier network
