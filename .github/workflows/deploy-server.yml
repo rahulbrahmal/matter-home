@@ -87,6 +87,28 @@ jobs:
           fi
           echo "deployed $(git rev-parse --short HEAD)"
 
+          # install / refresh the tunnel watchdog agent (launchd cannot expand
+          # $HOME inside a plist, so the path placeholder is substituted here)
+          mkdir -p ~/Library/LaunchAgents ~/Library/Logs/matterhome
+          WATCHDOG_PLIST=~/Library/LaunchAgents/com.matterhome.watchdog.plist
+          sed "s|__HOME__|$HOME|g" deploy/com.matterhome.watchdog.plist > "$WATCHDOG_PLIST"
+          chmod +x deploy/tunnel-watchdog.sh
+          launchctl bootout "gui/$(id -u)/com.matterhome.watchdog" 2>/dev/null || true
+          launchctl bootstrap "gui/$(id -u)" "$WATCHDOG_PLIST"
+          echo "  watchdog installed"
+
+          # snapshot the live launchd plists so production process config is
+          # visible in the deploy log and can be committed to deploy/
+          for a in tunnel gateway matterserver; do
+            P=~/Library/LaunchAgents/com.matterhome.$a.plist
+            echo "----- com.matterhome.$a.plist -----"
+            [ -f "$P" ] && cat "$P" || echo "  (not found at $P)"
+          done
+          echo "----- sleep settings -----"
+          pmset -g | grep -iE 'sleep|womp' || true
+          echo "----- recent tunnel log -----"
+          tail -n 25 ~/Library/Logs/matterhome/tunnel.log 2>/dev/null || echo "  (no tunnel.log)"
+
           # health check
           TOKEN=$(grep -oE 'GW_TOKEN=.*' gateway/.env | cut -d= -f2)
           HEALTHY=0
