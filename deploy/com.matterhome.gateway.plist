@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reference copy of the live agent on kl_2_server, captured from
+  ~/Library/LaunchAgents/. __HOME__ stands in for the server's home directory.
+  The deploy does not install this file — it is committed so production process
+  config is reviewable and can be rebuilt if the server is ever reimaged.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.matterhome.gateway</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/node</string><string>--env-file=__HOME__/matter-home/gateway/.env</string>
+    <string>__HOME__/matter-home/gateway/server.mjs</string>
+  </array>
+  <key>WorkingDirectory</key><string>__HOME__/matter-home/gateway</string>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/matterhome/gateway.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/matterhome/gateway.log</string>
+</dict></plist>

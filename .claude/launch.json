@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "web", "--", "--port", "5199", "--strictPort"],
+      "port": 5199
+    },
+    {
+      "name": "production",
+      "url": "https://home.sigma-rahul.com"
+    }
+  ]
+}

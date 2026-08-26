@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reference copy of the live agent on kl_2_server, captured from
+  ~/Library/LaunchAgents/. __HOME__ stands in for the server's home directory.
+  The deploy does not install this file — it is committed so production process
+  config is reviewable and can be rebuilt if the server is ever reimaged.
+
+  --primary-interface en5 pins the controller to the LAN interface; the Matter
+  fabric in __HOME__/.matter_server is the one and only live fabric.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.matterhome.matterserver</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/node</string><string>--enable-source-maps</string>
+    <string>__HOME__/matter-server-app/node_modules/matter-server/dist/esm/MatterServer.js</string>
+    <string>--port</string><string>5580</string>
+    <string>--storage-path</string><string>__HOME__/.matter_server</string>
+    <string>--primary-interface</string><string>en5</string>
+  </array>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/matterhome/matterserver.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/matterhome/matterserver.log</string>
+</dict></plist>

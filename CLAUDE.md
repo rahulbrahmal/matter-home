@@ -6,7 +6,8 @@ This file guides Claude Code (and other agents) working in this repo. The full g
 
 **Everything hosted runs on the always-on server `kl_2_server`** (on the home LAN, reachable over ZeroTier at `172.30.2.3`). **No production runtime runs on a developer laptop, MacBook, or any personal machine** — that setup is fully decommissioned. Don't re-introduce or document laptop-hosted services.
 
-- Production host `kl_2_server` runs three launchd agents: `matterserver` (`:5580`), `gateway` (`:8788`), `tunnel` (Cloudflare → `https://home.sigma-rahul.com`).
+- Production host `kl_2_server` runs four launchd agents: `matterserver` (`:5580`), `gateway` (`:8788`), `tunnel` (Cloudflare → `https://home.sigma-rahul.com`), and `watchdog` (restarts the tunnel when the public URL is down but the gateway is healthy).
+- A Cloudflare **error 1033** means the tunnel dropped, not that the app is down — the gateway keeps serving on `:8788`. See "Tunnel outages" in [AGENTS.md](AGENTS.md).
 - The Matter fabric lives on the server (`~/.matter_server`). Never run a second controller against it — one live matter-server only, on `kl_2_server`.
 - Public entry point: `https://home.sigma-rahul.com`.
 
