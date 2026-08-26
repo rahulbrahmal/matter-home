@@ -19,9 +19,12 @@ export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
 REPO="${REPO:-$HOME/matter-home}"
 PUBLIC_URL="${PUBLIC_URL:-https://home.sigma-rahul.com/}"
 HEALTH_URL="${HEALTH_URL:-http://localhost:8788/api/health}"
+GATEWAY_URL="${GATEWAY_URL:-http://localhost:8788/}"
 UPSTREAM_URL="${UPSTREAM_URL:-https://www.cloudflare.com/cdn-cgi/trace}"
-AGENT="gui/$(id -u)/com.matterhome.tunnel"
-STATE="$HOME/.matterhome/watchdog.state"
+# AGENT and STATE are overridable so the deploy can self-test the decision path
+# against a throwaway label and state file without disturbing the live tunnel.
+AGENT="${AGENT:-gui/$(id -u)/com.matterhome.tunnel}"
+STATE="${STATE:-$HOME/.matterhome/watchdog.state}"
 
 # Act only after FAIL_THRESHOLD consecutive bad probes (~4 min) so a single
 # blip is ridden out, and never restart more often than the cooldown. After
@@ -53,7 +56,7 @@ gateway_ok() {
   if [ -n "${token:-}" ]; then
     curl -fs -m 10 -o /dev/null -H "Authorization: Bearer $token" "$HEALTH_URL"
   else
-    probe "http://localhost:8788/"
+    probe "$GATEWAY_URL"
   fi
 }
 

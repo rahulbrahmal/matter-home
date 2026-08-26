@@ -104,6 +104,34 @@ jobs:
             echo "----- com.matterhome.$a.plist -----"
             [ -f "$P" ] && cat "$P" || echo "  (not found at $P)"
           done
+          # self-test the watchdog's decision path against a URL that is always
+          # down, using a throwaway state file and a bogus agent label so the
+          # live tunnel is never touched. Proves the guards and the restart
+          # trigger actually fire, rather than trusting that the agent loaded.
+          echo "----- watchdog self-test -----"
+          TMPSTATE=$(mktemp)
+          # gateway healthy + public down + internet up -> arms, then triggers
+          OUT1=$(STATE="$TMPSTATE" AGENT="gui/$(id -u)/com.matterhome.selftest-nonexistent" \
+            PUBLIC_URL="http://localhost:9/down" /bin/zsh deploy/tunnel-watchdog.sh 2>&1)
+          OUT2=$(STATE="$TMPSTATE" AGENT="gui/$(id -u)/com.matterhome.selftest-nonexistent" \
+            PUBLIC_URL="http://localhost:9/down" /bin/zsh deploy/tunnel-watchdog.sh 2>&1)
+          # public down + gateway also down -> must NOT restart the tunnel.
+          # REPO is bogus so gateway_ok takes the unauthenticated fallback, and
+          # GATEWAY_URL must point somewhere dead too — otherwise the fallback
+          # would hit the real (healthy) gateway and this would test nothing.
+          OUT3=$(STATE="$(mktemp)" AGENT="gui/$(id -u)/com.matterhome.selftest-nonexistent" \
+            PUBLIC_URL="http://localhost:9/down" HEALTH_URL="http://localhost:9/down" \
+            GATEWAY_URL="http://localhost:9/down" \
+            REPO=/nonexistent /bin/zsh deploy/tunnel-watchdog.sh 2>&1)
+          echo "  probe1: $OUT1"
+          echo "  probe2: $OUT2"
+          echo "  gateway-down: $OUT3"
+          rm -f "$TMPSTATE"
+          echo "$OUT1" | grep -q 'probe 1/2' || { echo "self-test FAILED: first probe did not arm" >&2; exit 1; }
+          echo "$OUT2" | grep -q 'restarting the tunnel' || { echo "self-test FAILED: threshold did not trigger a restart" >&2; exit 1; }
+          echo "$OUT3" | grep -q 'not a tunnel fault' || { echo "self-test FAILED: restarted despite an unhealthy gateway" >&2; exit 1; }
+          echo "  self-test OK"
+
           echo "----- watchdog status -----"
           launchctl print "gui/$(id -u)/com.matterhome.watchdog" 2>/dev/null \
             | grep -E 'state|last exit|program|runs' || echo "  (not loaded)"
