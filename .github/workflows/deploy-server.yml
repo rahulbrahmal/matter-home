@@ -104,6 +104,10 @@ jobs:
             echo "----- com.matterhome.$a.plist -----"
             [ -f "$P" ] && cat "$P" || echo "  (not found at $P)"
           done
+          echo "----- watchdog status -----"
+          launchctl print "gui/$(id -u)/com.matterhome.watchdog" 2>/dev/null \
+            | grep -E 'state|last exit|program|runs' || echo "  (not loaded)"
+          tail -n 10 ~/Library/Logs/matterhome/watchdog.log 2>/dev/null || echo "  (no watchdog.log yet)"
           echo "----- sleep settings -----"
           pmset -g | grep -iE 'sleep|womp' || true
           echo "----- recent tunnel log -----"
