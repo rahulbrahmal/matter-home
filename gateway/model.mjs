@@ -37,7 +37,9 @@ export function buildDevices(store, rooms = {}) {
       walk(D);
       const ownedEps = [...owned];
       const has = (cl) => ownedEps.find((ep) => clustersOf(ep).includes(cl));
-      const serial = attrs[A(D, C.BRIDGED, 15)] || attrs[A(D, C.BASIC, 15)] || null;
+      // Aqara hub firmware 4.5.80+ reports bridged serials as "<hub serial>/<endpoint>"; ids and room lookups key on the bare serial
+      const rawSerial = attrs[A(D, C.BRIDGED, 15)] || attrs[A(D, C.BASIC, 15)] || null;
+      const serial = rawSerial ? String(rawSerial).replace(/\/\d+$/, '') : null;
       const label = rooms[serial]?.name || attrs[A(D, C.BRIDGED, 5)] || attrs[A(D, C.BASIC, 5)] || `node ${nodeId} ep ${D}`;
       const onOffEps = ownedEps.filter((ep) => clustersOf(ep).includes(C.ONOFF));
       const caps = {

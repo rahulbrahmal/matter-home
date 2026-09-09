@@ -145,7 +145,7 @@ export function buildRooms(devices) {
   for (const u of explodeUnits(devices)) { const r = homeOf(u); if (r) (byRoom[r] ??= []).push(u); }
   for (const c of devices) if (c.type === 'cover' && c.room && !c.hidden) (coversBy[zoneOf[c.room] || c.room] ??= []).push(c);
 
-  const names = [...new Set([...Object.keys(byRoom), ...Object.keys(coversBy), ...climates.map((c) => c.room)])].sort(ord(ROOM_ORDER));
+  const names = [...new Set([...Object.keys(byRoom), ...Object.keys(coversBy), ...climates.map((c) => c.room).filter(Boolean)])].sort(ord(ROOM_ORDER));
   return names.map((name) => {
     const us = byRoom[name] || [];
     const hidden = us.filter((u) => u.hidden || HIDDEN_ROLES.includes(u.role));
