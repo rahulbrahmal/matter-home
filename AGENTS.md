@@ -53,7 +53,15 @@ Error 1033 on `home.sigma-rahul.com` means cloudflared is not connected to Cloud
 
 **Known cause.** cloudflared logs `Lost connection with the edge` and, on some reconnect attempts, `DialContext error: dial tcp 198.41.192.x:7844: i/o timeout`. It retries but does not always recover all four connections, and the process stays alive throughout — so launchd's `KeepAlive` never fires. That is the gap the watchdog fills. The tunnel runs with `--protocol http2` rather than the QUIC default; don't switch to QUIC unless outbound UDP/7844 is known to work from the home LAN.
 
-**Self-healing.** `deploy/tunnel-watchdog.sh` runs every 120s under `com.matterhome.watchdog` and kickstarts the tunnel when the public URL is down *and* the gateway is healthy *and* the server has internet. It requires two consecutive bad probes, waits 10 min between restarts, and backs off to hourly after three restarts that didn't restore service — so a Cloudflare-side outage isn't met with a restart loop. Logs to `~/Library/Logs/matterhome/watchdog.log`.
+**Second known failure mode — half-dead tunnel (blank app, no 1033).** Seen 2026-09-20: `https://home.sigma-rahul.com/` returned 200 and small files (index.html, manifest, the 8 KB icon) loaded, but every response above roughly 16 KB — the SPA bundle, its CSS, the 19 KB icon — stalled until the client gave up. The app opened to a blank white page and the lights "stopped working". Over the LAN the same files downloaded in about a second, so this is cloudflared's edge connection, not the gateway. The original watchdog only fetched `/`, so it saw a healthy tunnel and never restarted it. Both the watchdog and the deploy now probe the app bundle referenced by index.html (`deploy/tunnel-watchdog.sh --check` does just that probe). Quick way to tell the two modes apart from any machine:
+
+```sh
+curl -s -o /dev/null -m 15 -w '%{http_code} %{size_download}\n' https://home.sigma-rahul.com/icons/icon-512.png
+```
+
+`200 19007` is healthy. A `000 0` timeout while `/` still answers is the half-dead tunnel; the fix is the same kickstart as below.
+
+**Self-healing.** `deploy/tunnel-watchdog.sh` runs every 120s under `com.matterhome.watchdog` and kickstarts the tunnel when the public URL is down (index.html or the app bundle it references fails to load) *and* the gateway is healthy *and* the server has internet. It requires two consecutive bad probes, waits 10 min between restarts, and backs off to hourly after three restarts that didn't restore service — so a Cloudflare-side outage isn't met with a restart loop. Logs to `~/Library/Logs/matterhome/watchdog.log`.
 
 **Manual recovery**, if you're on the server and don't want to wait for the watchdog:
 

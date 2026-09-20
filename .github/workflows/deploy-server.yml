@@ -104,6 +104,23 @@ jobs:
             echo "----- com.matterhome.$a.plist -----"
             [ -f "$P" ] && cat "$P" || echo "  (not found at $P)"
           done
+          # health check — wait for the (possibly just-restarted) gateway before
+          # anything below relies on it. The watchdog self-test probes the real
+          # gateway, so running it first raced the restart and failed the
+          # 2026-09-09 deploy with "gateway is down too".
+          TOKEN=$(grep -oE 'GW_TOKEN=.*' gateway/.env | cut -d= -f2)
+          HEALTHY=0
+          for i in $(seq 1 15); do
+            if curl -fs -H "Authorization: Bearer $TOKEN" http://localhost:8788/api/health; then
+              echo; echo "health OK"; HEALTHY=1; break
+            fi
+            sleep 2
+          done
+          if [ "$HEALTHY" != 1 ]; then
+            echo "gateway health check failed" >&2
+            exit 1
+          fi
+
           # self-test the watchdog's decision path against a URL that is always
           # down, using a throwaway state file and a bogus agent label so the
           # live tunnel is never touched. Proves the guards and the restart
@@ -141,26 +158,14 @@ jobs:
           echo "----- recent tunnel log -----"
           tail -n 25 ~/Library/Logs/matterhome/tunnel.log 2>/dev/null || echo "  (no tunnel.log)"
 
-          # health check
-          TOKEN=$(grep -oE 'GW_TOKEN=.*' gateway/.env | cut -d= -f2)
-          HEALTHY=0
-          for i in $(seq 1 15); do
-            if curl -fs -H "Authorization: Bearer $TOKEN" http://localhost:8788/api/health; then
-              echo; echo "health OK"; HEALTHY=1; break
-            fi
-            sleep 2
-          done
-          if [ "$HEALTHY" != 1 ]; then
-            echo "gateway health check failed" >&2
-            exit 1
-          fi
-
-          # tunnel health: if the public URL isn't answering, kickstart cloudflared
-          if ! curl -fs -m 10 -o /dev/null https://home.sigma-rahul.com/; then
-            echo "public URL down — restarting tunnel"
+          # tunnel health: same probe the watchdog uses (index.html AND the app
+          # bundle it references — a half-dead tunnel can pass small responses
+          # and stall large ones). Kickstart cloudflared if it fails.
+          if ! /bin/zsh deploy/tunnel-watchdog.sh --check; then
+            echo "public URL down or not serving the app bundle — restarting tunnel"
             launchctl kickstart -k "gui/$(id -u)/com.matterhome.tunnel"
             for i in $(seq 1 15); do
-              if curl -fs -m 10 -o /dev/null https://home.sigma-rahul.com/; then
+              if /bin/zsh deploy/tunnel-watchdog.sh --check; then
                 echo "tunnel OK"; exit 0
               fi
               sleep 2
