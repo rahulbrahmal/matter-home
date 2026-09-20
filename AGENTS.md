@@ -59,7 +59,17 @@ Error 1033 on `home.sigma-rahul.com` means cloudflared is not connected to Cloud
 curl -s -o /dev/null -m 15 -w '%{http_code} %{size_download}\n' https://home.sigma-rahul.com/icons/icon-512.png
 ```
 
-`200 19007` is healthy. A `000 0` timeout while `/` still answers is the half-dead tunnel; the fix is the same kickstart as below.
+`200 19007` is healthy. A `000 0` timeout while `/` still answers is this mode.
+
+**Root cause found on 2026-09-20: it was not the tunnel.** The same 19 KB file stalled from the server itself over `localhost`, `127.0.0.1`, `::1` and its own LAN IP, and so did a throwaway Python HTTP server, while ZeroTier clients got it in a second. macOS `lo0` has a 16384-byte MTU, so every loopback segment needs a 16 KB mbuf cluster; `netstat -m` showed `494/507 mbuf 16KB clusters in use`, and `netstat -an -p tcp` showed 120+ orphaned `::1.8788` sockets in `CLOSING` with ~72 KB each of the app bundle unsent, plus a `::1.5580` socket with 400 KB of matter-server → gateway data queued. Once the pool is nearly empty every loopback transfer over one segment deadlocks and pins more clusters. cloudflared proxies to `localhost:8788`, so the public URL breaks first, and the gateway ↔ matter-server WebSocket is impaired too. Restarting cloudflared, upgrading it (2026.8.2 → 2026.9.1) and restarting the gateway did nothing; orphaned kernel sockets don't belong to any process. The watchdog now detects this (`origin_large_ok`) and logs it instead of restarting the tunnel.
+
+Fix needs root, and the `kl_2_server` account's sudo prompts for a password, so an agent over SSH cannot do it:
+
+```sh
+sudo ifconfig lo0 mtu 1500      # loopback now uses 2 KB clusters; stuck sockets drain and free the pool
+```
+
+or a reboot. **Before rebooting:** the box has no auto-login configured and FileVault is off, so after a restart it sits at the login window and none of the `gui/` launch agents (matterserver, gateway, tunnel, watchdog) start until someone logs in, locally or via Screen Sharing (ARD agent is running). The same Mac also runs Scrypted under user `pi`, which is the likeliest source of the heavy loopback traffic that drained the pool; uptime was 243 days.
 
 **Self-healing.** `deploy/tunnel-watchdog.sh` runs every 120s under `com.matterhome.watchdog` and kickstarts the tunnel when the public URL is down (index.html or the app bundle it references fails to load) *and* the gateway is healthy *and* the server has internet. It requires two consecutive bad probes, waits 10 min between restarts, and backs off to hourly after three restarts that didn't restore service — so a Cloudflare-side outage isn't met with a restart loop. Logs to `~/Library/Logs/matterhome/watchdog.log`.
 

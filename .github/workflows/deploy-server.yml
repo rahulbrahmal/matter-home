@@ -167,6 +167,8 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE=1 brew list --versions cloudflared 2>/dev/null || true
           HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --verbose cloudflared 2>/dev/null || echo "  brew: cloudflared not reported outdated (or brew unavailable)"
           launchctl print "gui/$(id -u)/com.matterhome.tunnel" 2>/dev/null | grep -E 'state =|pid =|last exit' || echo "  (tunnel agent not loaded)"
+          echo "  16KB mbuf clusters (loopback packets): $(netstat -m | grep -E '16KB clusters' | tr -s ' ')"
+          echo "  loopback sockets stuck with unsent data: $(netstat -an -p tcp | awk '($4 ~ /^(127\.0\.0\.1|::1)\./) && $3>0' | wc -l | tr -d ' ')"
           IFACE=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')
           echo "  default interface: ${IFACE:-?}"
           [ -n "${IFACE:-}" ] && ifconfig "$IFACE" | grep -E 'mtu|inet ' || true
