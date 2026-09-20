@@ -8,6 +8,15 @@
 # ends and kickstart the tunnel only when the gateway is up and the public URL
 # is not.
 #
+# "Up" has to mean more than "index.html came back": a half-dead tunnel has
+# been seen (2026-09-20) passing every response under ~16 KB and stalling
+# everything bigger, so `/` answered 200 while the app bundle never arrived
+# and the SPA rendered blank. The public probe therefore fetches the bundle
+# that index.html references, not just index.html.
+#
+# `tunnel-watchdog.sh --check` runs only that public probe (no state, no
+# restart) and exits 0/1 — the deploy uses it to decide whether to kickstart.
+#
 # Deliberately does nothing when the gateway itself is down (that's not a tunnel
 # fault) or when the server has no internet at all (restarting cloudflared can't
 # fix an ISP outage, and retrying every 2 min would just churn).
@@ -48,6 +57,22 @@ save_state() {
 
 probe() { curl -fs -m 10 -o /dev/null "$1"; }
 
+# Public URL is healthy only if index.html AND the app bundle it references
+# both come through. Falls back to a fixed ~19 KB icon if the bundle can't be
+# parsed out (unexpected index.html), so the size check still happens.
+public_ok() {
+  local html asset
+  html=$(curl -fs -m 10 "$PUBLIC_URL") || return 1
+  asset=$(printf '%s' "$html" | grep -oE 'assets/index-[^"]+\.js' | head -n1)
+  [ -n "$asset" ] || asset="icons/icon-512.png"
+  curl -fs -m 20 -o /dev/null "${PUBLIC_URL%/}/$asset"
+}
+
+if [ "${1:-}" = "--check" ]; then
+  public_ok && exit 0
+  exit 1
+fi
+
 # The gateway health endpoint is token-authenticated; fall back to the SPA root
 # (unauthenticated, 200) if .env can't be read for any reason.
 gateway_ok() {
@@ -60,7 +85,7 @@ gateway_ok() {
   fi
 }
 
-if probe "$PUBLIC_URL"; then
+if public_ok; then
   # Healthy. Clear the counters so a later fault starts from a clean slate.
   if [ "$FAILS" -ne 0 ] || [ "$RESTARTS" -ne 0 ]; then
     log "public URL healthy again (after $FAILS failed probes, $RESTARTS restarts)"
@@ -110,7 +135,7 @@ if launchctl kickstart -k "$AGENT"; then
   # Give cloudflared a moment to re-establish before reporting the outcome.
   for i in $(seq 1 15); do
     sleep 2
-    if probe "$PUBLIC_URL"; then
+    if public_ok; then
       log "tunnel restarted — public URL back up"
       RESTARTS=0
       save_state
