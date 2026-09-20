@@ -157,6 +157,22 @@ jobs:
           pmset -g | grep -iE 'sleep|womp' || true
           echo "----- recent tunnel log -----"
           tail -n 25 ~/Library/Logs/matterhome/tunnel.log 2>/dev/null || echo "  (no tunnel.log)"
+          echo "----- tunnel log, excluding repeated proxy errors -----"
+          grep -vE 'stream closed' ~/Library/Logs/matterhome/tunnel.log 2>/dev/null | tail -n 30 || true
+
+          # tunnel diagnostics: enough to tell a cloudflared/edge protocol fault
+          # from a network one without needing an interactive SSH session
+          echo "----- tunnel diagnostics -----"
+          cloudflared --version 2>&1 || echo "  (cloudflared not on PATH)"
+          HOMEBREW_NO_AUTO_UPDATE=1 brew list --versions cloudflared 2>/dev/null || true
+          HOMEBREW_NO_AUTO_UPDATE=1 brew outdated --verbose cloudflared 2>/dev/null || echo "  brew: cloudflared not reported outdated (or brew unavailable)"
+          launchctl print "gui/$(id -u)/com.matterhome.tunnel" 2>/dev/null | grep -E 'state =|pid =|last exit' || echo "  (tunnel agent not loaded)"
+          IFACE=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')
+          echo "  default interface: ${IFACE:-?}"
+          [ -n "${IFACE:-}" ] && ifconfig "$IFACE" | grep -E 'mtu|inet ' || true
+          for u in "http://localhost:8788/icons/icon-512.png" "https://home.sigma-rahul.com/icons/icon-512.png" "https://home.sigma-rahul.com/"; do
+            curl -s -o /dev/null -m 15 -w "  $u -> %{http_code} %{size_download} bytes in %{time_total}s\n" "$u" || echo "  $u -> curl exit $?"
+          done
 
           # tunnel health: same probe the watchdog uses (index.html AND the app
           # bundle it references — a half-dead tunnel can pass small responses
