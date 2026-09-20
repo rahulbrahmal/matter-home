@@ -73,6 +73,17 @@ if [ "${1:-}" = "--check" ]; then
   exit 1
 fi
 
+# Can the gateway deliver a >16 KB response over loopback? On 2026-09-20 it
+# could not: macOS lo0 has a 16384-byte MTU, so every loopback segment needs a
+# 16 KB mbuf cluster, and that pool (~500 clusters) was exhausted by stuck
+# half-closed sockets. Every local transfer then stalled after the first
+# segment while remote (LAN/ZeroTier) transfers worked. cloudflared proxies to
+# localhost, so the tunnel looked broken but restarting it could not help.
+# Needs root to fix: `sudo ifconfig lo0 mtu 1500` (immediate) or a reboot.
+origin_large_ok() {
+  curl -fs -m 15 -o /dev/null "${GATEWAY_URL%/}/icons/icon-512.png"
+}
+
 # The gateway health endpoint is token-authenticated; fall back to the SPA root
 # (unauthenticated, 200) if .env can't be read for any reason.
 gateway_ok() {
@@ -97,6 +108,13 @@ fi
 
 if ! gateway_ok; then
   log "public URL down, but the gateway is down too — not a tunnel fault, leaving it alone"
+  FAILS=0
+  save_state
+  exit 0
+fi
+
+if ! origin_large_ok; then
+  log "public URL down, but the gateway also stalls on a 19 KB response over loopback — kernel 16 KB mbuf clusters exhausted ($(netstat -m 2>/dev/null | grep -E '16KB clusters' | tr -s ' ')); restarting the tunnel cannot fix this. Run: sudo ifconfig lo0 mtu 1500 (or reboot)"
   FAILS=0
   save_state
   exit 0
